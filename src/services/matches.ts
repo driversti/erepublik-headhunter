@@ -1,4 +1,5 @@
 import type { AlertedRoundsRepo } from '../db/repos/alerted-rounds.js';
+import { type Logger, SilentLogger } from '../erep/logger.js';
 import { escapeHtml } from '../util/escapeHtml.js';
 
 export interface MatchedVictim {
@@ -38,10 +39,17 @@ export interface MatchesServiceDeps {
    *  satisfies it; tests pass a fake. */
   alertedRounds: Pick<AlertedRoundsRepo, 'record'>;
   send: SendFn;
+  /** Optional logger; defaults to SilentLogger. Used to surface send failures
+   *  (403/429/5xx from Telegram) so the bot layer can react (auto-revoke etc.). */
+  logger?: Logger;
 }
 
 export class MatchesService {
-  constructor(private readonly deps: MatchesServiceDeps) {}
+  private readonly log: Logger;
+
+  constructor(private readonly deps: MatchesServiceDeps) {
+    this.log = deps.logger ?? new SilentLogger();
+  }
 
   /**
    * Records the (hunter, battle, zone) dedup key, and on first-write sends a
@@ -62,7 +70,13 @@ export class MatchesService {
     try {
       await this.deps.send(input.hunter.telegramId, html);
       return 'sent';
-    } catch {
+    } catch (err) {
+      this.log.warn('matches.send_failed', {
+        chatId: input.hunter.telegramId.toString(),
+        battleId: input.battle.battleId.toString(),
+        zoneId: input.battle.zoneId,
+        error: err instanceof Error ? err.message : String(err),
+      });
       return 'send_failed';
     }
   }

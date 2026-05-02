@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { MemoryLogger } from '../../erep/logger.js';
 import { MatchesService, type MatchAlertInput } from '../matches.js';
 
 interface FakeAlertedRounds {
@@ -121,13 +122,20 @@ describe('MatchesService', () => {
     expect(send).not.toHaveBeenCalled();
   });
 
-  it('does NOT propagate send errors (resilient to Telegram 403/429/5xx per SPEC §4.3)', async () => {
+  it('does NOT propagate send errors and logs the failure (resilient to Telegram 403/429/5xx per SPEC §4.3)', async () => {
     const repo = makeRepo();
     const send = vi.fn().mockRejectedValue(new Error('Forbidden: bot was blocked by the user'));
-    const svc = new MatchesService({ alertedRounds: repo, send });
+    const logger = new MemoryLogger();
+    const svc = new MatchesService({ alertedRounds: repo, send, logger });
 
-    // Should resolve, not reject. Returns 'send_failed'.
     const result = await svc.maybeAlert(baseInput());
     expect(result).toBe('send_failed');
+    // Logger captured the failure with chatId + error message.
+    expect(logger.entries).toHaveLength(1);
+    const entry = logger.entries[0]!;
+    expect(entry.level).toBe('warn');
+    expect(entry.msg).toBe('matches.send_failed');
+    expect(entry.ctx?.['chatId']).toBe('100');
+    expect(entry.ctx?.['error']).toContain('Forbidden');
   });
 });
