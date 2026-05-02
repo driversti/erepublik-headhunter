@@ -30,6 +30,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "grammy": "^1.42.0",
     "node-pg-migrate": "^8.0.4",
     "pg": "^8.20.0",
     "zod": "^4.4.2"
