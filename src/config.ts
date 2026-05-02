@@ -27,6 +27,8 @@ const Schema = z.object({
   WINDOW_SECONDS: numericString('WINDOW_SECONDS', '300'),
   PROBE_LEAD_SEC: numericString('PROBE_LEAD_SEC', '300'),
   CANDIDATE_MIN_ELAPSED_SEC: numericString('CANDIDATE_MIN_ELAPSED_SEC', '5100'),
+  HTTP_PORT: numericString('HTTP_PORT', '3000'),
+  MINIAPP_INITDATA_TTL_SEC: numericString('MINIAPP_INITDATA_TTL_SEC', '86400'),
 });
 
 export interface Config {
@@ -41,6 +43,8 @@ export interface Config {
   windowSeconds: number;
   probeLeadSec: number;
   candidateMinElapsedSec: number;
+  httpPort: number;
+  miniappInitDataTtlSec: number;
 }
 
 export function loadConfig(source: Record<string, string | undefined> = process.env): Config {
@@ -57,5 +61,7 @@ export function loadConfig(source: Record<string, string | undefined> = process.
     windowSeconds: Number(parsed.WINDOW_SECONDS),
     probeLeadSec: Number(parsed.PROBE_LEAD_SEC),
     candidateMinElapsedSec: Number(parsed.CANDIDATE_MIN_ELAPSED_SEC),
+    httpPort: Number(parsed.HTTP_PORT),
+    miniappInitDataTtlSec: Number(parsed.MINIAPP_INITDATA_TTL_SEC),
   };
 }

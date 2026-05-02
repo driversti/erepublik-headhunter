@@ -82,4 +82,17 @@ describe('loadConfig', () => {
     const env = { ...fullEnv(), POLL_CAMPAIGNS_SEC: 'abc' };
     expect(() => loadConfig(env)).toThrow(/POLL_CAMPAIGNS_SEC/);
   });
+
+  it('applies safe defaults for HTTP env vars when unset', () => {
+    const cfg = loadConfig(fullEnv());
+    expect(cfg.httpPort).toBe(3000);
+    expect(cfg.miniappInitDataTtlSec).toBe(86400);
+  });
+
+  it('parses overridden HTTP env vars', () => {
+    const env = { ...fullEnv(), HTTP_PORT: '8080', MINIAPP_INITDATA_TTL_SEC: '3600' };
+    const cfg = loadConfig(env);
+    expect(cfg.httpPort).toBe(8080);
+    expect(cfg.miniappInitDataTtlSec).toBe(3600);
+  });
 });
