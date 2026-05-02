@@ -1,0 +1,25 @@
+{
+  "name": "headhunter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "eRepublik air-round monitoring bot — auth + HTTP client module",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --exclude '**/*.integration.test.ts'",
+    "test:watch": "vitest --exclude '**/*.integration.test.ts'",
+    "test:integration": "node --env-file=.env ./node_modules/vitest/dist/cli.js run src/erep/__tests__/auth.integration.test.ts",
+    "demo:login": "node --env-file=.env --import tsx scripts/login-demo.ts",
+    "demo:setcookie": "node --env-file=.env --import tsx scripts/set-cookie.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
+  }
+}
