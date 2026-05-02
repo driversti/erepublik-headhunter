@@ -63,4 +63,17 @@ export class VictimRepo {
     );
     return rows.map((r) => r.citizen_id);
   }
+
+  /** Returns `[{hunter, citizen}, ...]` across ALL hunters. The polling engine
+   *  calls this once per scan to build the in-memory victim → hunters map. */
+  async listAllForMatching(): Promise<Array<{ hunter: bigint; citizen: bigint }>> {
+    const { rows } = await this.pool.query<{
+      hunter_telegram_id: string;
+      citizen_id: string;
+    }>(`SELECT hunter_telegram_id, citizen_id FROM victims`);
+    return rows.map((r) => ({
+      hunter: BigInt(r.hunter_telegram_id),
+      citizen: BigInt(r.citizen_id),
+    }));
+  }
 }
