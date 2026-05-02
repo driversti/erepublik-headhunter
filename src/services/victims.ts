@@ -70,8 +70,11 @@ export class VictimService {
       actorTelegramId: input.hunterTelegramId,
       action: 'victim_remove',
       targetTelegramId: input.hunterTelegramId,
-      targetVictimId: null,
-      metadata: { citizen_id: input.citizenId.toString() },
+      targetVictimId: BigInt(removed.id),
+      metadata: {
+        citizen_id: removed.citizen_id,
+        citizen_name: removed.citizen_name,
+      },
     });
     return true;
   }

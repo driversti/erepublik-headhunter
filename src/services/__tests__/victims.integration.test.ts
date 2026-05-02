@@ -103,14 +103,16 @@ describe('VictimService', () => {
   it('remove() returns true and writes audit when the row existed', async () => {
     const profile: CitizenProfile = { citizenId: 1, name: 'A', country: null, avatarUrl: null };
     const svc = makeService(makeFakeClient(profile));
-    await svc.add({ hunterTelegramId: HUNTER, citizenId: 1n, nickname: null });
+    const added = await svc.add({ hunterTelegramId: HUNTER, citizenId: 1n, nickname: null });
+    if (added.kind !== 'ok') throw new Error('add failed');
 
     const removed = await svc.remove({ hunterTelegramId: HUNTER, citizenId: 1n });
     expect(removed).toBe(true);
 
     const audit = await new AuditRepo(ctx.pool).listForHunter(HUNTER);
     expect(audit.map((r) => r.action)).toEqual(['victim_remove', 'victim_add']); // DESC
-    expect(audit[0]!.metadata).toEqual({ citizen_id: '1' });
+    expect(audit[0]!.metadata).toEqual({ citizen_id: '1', citizen_name: 'A' });
+    expect(audit[0]!.target_victim_id).toBe(added.row.id);
   });
 
   it('remove() returns false and writes NO audit when nothing matched', async () => {

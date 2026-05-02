@@ -36,12 +36,12 @@ export class VictimRepo {
     return rows[0]!;
   }
 
-  async removeByCitizenId(input: RemoveVictimInput): Promise<boolean> {
-    const result = await this.pool.query(
-      `DELETE FROM victims WHERE hunter_telegram_id = $1 AND citizen_id = $2`,
+  async removeByCitizenId(input: RemoveVictimInput): Promise<VictimRow | null> {
+    const { rows } = await this.pool.query<VictimRow>(
+      `DELETE FROM victims WHERE hunter_telegram_id = $1 AND citizen_id = $2 RETURNING *`,
       [input.hunterTelegramId.toString(), input.citizenId.toString()],
     );
-    return (result.rowCount ?? 0) > 0;
+    return rows[0] ?? null;
   }
 
   async listForHunter(hunterTelegramId: bigint): Promise<VictimRow[]> {
