@@ -1,0 +1,35 @@
+services:
+  bot:
+    build: .
+    image: headhunter:local
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://headhunter:${DB_PASSWORD:-headhunter}@db:5432/headhunter
+      HTTP_PORT: 3000
+    ports:
+      - "${HTTP_PORT:-3000}:3000"
+    volumes:
+      - bot_session:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: headhunter
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-headhunter}
+      POSTGRES_DB: headhunter
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U headhunter -d headhunter"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:
+  bot_session:
