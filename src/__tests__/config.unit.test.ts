@@ -95,4 +95,20 @@ describe('loadConfig', () => {
     expect(cfg.httpPort).toBe(8080);
     expect(cfg.miniappInitDataTtlSec).toBe(3600);
   });
+
+  it('defaults LOG_LEVEL to info and LOG_PRETTY to false', () => {
+    const cfg = loadConfig(fullEnv());
+    expect(cfg.logLevel).toBe('info');
+    expect(cfg.logPretty).toBe(false);
+  });
+
+  it('parses overridden LOG_LEVEL and LOG_PRETTY=true', () => {
+    const cfg = loadConfig({ ...fullEnv(), LOG_LEVEL: 'debug', LOG_PRETTY: 'true' });
+    expect(cfg.logLevel).toBe('debug');
+    expect(cfg.logPretty).toBe(true);
+  });
+
+  it('rejects an unknown LOG_LEVEL', () => {
+    expect(() => loadConfig({ ...fullEnv(), LOG_LEVEL: 'nope' })).toThrow();
+  });
 });
