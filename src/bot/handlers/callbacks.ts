@@ -110,21 +110,21 @@ async function handleTransition(
  */
 export function callbackHandlers(deps: CallbacksDeps): Composer<never> {
   const c = new Composer<never>();
-  c.use(ownerOnly(deps.ownerTelegramId));
+  const gate = ownerOnly(deps.ownerTelegramId);
 
-  c.callbackQuery(/^approve:[0-9]+$/, async (ctx) => {
+  c.callbackQuery(/^approve:[0-9]+$/, gate, async (ctx) => {
     await handleApprove(ctx as unknown as CallbackCtx, deps);
   });
 
-  c.callbackQuery(/^deny:[0-9]+$/, async (ctx) => {
+  c.callbackQuery(/^deny:[0-9]+$/, gate, async (ctx) => {
     await handleDeny(ctx as unknown as CallbackCtx, deps);
   });
 
-  c.callbackQuery(/^revoke:[0-9]+$/, async (ctx) => {
+  c.callbackQuery(/^revoke:[0-9]+$/, gate, async (ctx) => {
     await handleRevoke(ctx as unknown as CallbackCtx, deps);
   });
 
-  c.callbackQuery(/^unrevoke:[0-9]+$/, async (ctx) => {
+  c.callbackQuery(/^unrevoke:[0-9]+$/, gate, async (ctx) => {
     await handleUnrevoke(ctx as unknown as CallbackCtx, deps);
   });
 

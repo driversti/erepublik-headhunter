@@ -153,37 +153,37 @@ export async function handleSetcookie(ctx: OwnerCtx, deps: OwnerDeps): Promise<v
 
 export function ownerHandlers(deps: OwnerDeps): Composer<never> {
   const c = new Composer<never>();
-  c.use(ownerOnly(deps.ownerTelegramId));
+  const gate = ownerOnly(deps.ownerTelegramId);
 
-  c.command('pending', async (ctx) => {
+  c.command('pending', gate, async (ctx) => {
     await handlePending(ctx, deps);
   });
 
-  c.command('users', async (ctx) => {
+  c.command('users', gate, async (ctx) => {
     await handleUsers(ctx, deps);
   });
 
-  c.command('audit', async (ctx) => {
+  c.command('audit', gate, async (ctx) => {
     await handleAudit(ctx, deps);
   });
 
-  c.command('status', async (ctx) => {
+  c.command('status', gate, async (ctx) => {
     await handleStatus(ctx, deps);
   });
 
-  c.command('unban', async (ctx) => {
+  c.command('unban', gate, async (ctx) => {
     await handleUnban(ctx, deps);
   });
 
-  c.command('revoke', async (ctx) => {
+  c.command('revoke', gate, async (ctx) => {
     await handleRevoke(ctx, deps);
   });
 
-  c.command('unrevoke', async (ctx) => {
+  c.command('unrevoke', gate, async (ctx) => {
     await handleUnrevoke(ctx, deps);
   });
 
-  c.command('setcookie', async (ctx) => {
+  c.command('setcookie', gate, async (ctx) => {
     await handleSetcookie(ctx, deps);
   });
 

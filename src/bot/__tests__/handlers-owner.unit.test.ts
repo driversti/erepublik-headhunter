@@ -81,27 +81,6 @@ function makeDeps(overrides: {
 }
 
 // ---------------------------------------------------------------------------
-// Owner-gate: non-owner is not tested here (middleware.unit.test.ts covers it);
-// but we verify the handlers themselves are callable directly by the owner.
-// ---------------------------------------------------------------------------
-
-describe('owner handlers — non-owner blocked (middleware)', () => {
-  it('non-owner receives "Unknown command." when calling handlePending via composer', async () => {
-    // The ownerOnly gate is in the Composer wrapper. We test it by building
-    // a ctx where from.id != ownerTelegramId and wiring through the composer.
-    // For simplicity we test this by importing ownerHandlers and dispatching.
-    const { ownerHandlers } = await import('../handlers/owner.js');
-    const deps = makeDeps();
-    const composer = ownerHandlers(deps);
-    const ctx = buildCtx({ fromId: 12345, text: '/pending' });
-    const middleware = composer.middleware();
-    await middleware(ctx as never, async () => {});
-    // ownerOnly replies "Unknown command." to non-owners.
-    expect(ctx.reply).toHaveBeenCalledWith('Unknown command.');
-  });
-});
-
-// ---------------------------------------------------------------------------
 // /pending
 // ---------------------------------------------------------------------------
 

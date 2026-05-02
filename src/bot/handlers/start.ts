@@ -2,6 +2,7 @@ import { Composer as Comp } from 'grammy';
 import type { HunterService } from '../../services/hunters.js';
 import { approveDenyKeyboard } from '../keyboards.js';
 import { type Logger, SilentLogger } from '../../erep/logger.js';
+import { escapeHtml } from '../../util/escapeHtml.js';
 
 export interface StartDeps {
   hunters: HunterService;
@@ -48,7 +49,7 @@ export async function handleRegister(ctx: StartCtx, deps: StartDeps): Promise<vo
     await ctx.reply('Registration request sent. The owner will review.');
     // DM the owner with Approve/Deny inline buttons.
     try {
-      const usernamePart = ctx.from.username ? ` (@${ctx.from.username})` : '';
+      const usernamePart = ctx.from.username ? ` (@${escapeHtml(ctx.from.username)})` : '';
       await ctx.api.sendMessage(
         Number(deps.ownerTelegramId),
         `📥 Registration request from <code>${ctx.from.id}</code>${usernamePart}`,

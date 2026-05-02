@@ -84,17 +84,17 @@ export async function handleList(ctx: VictimsCtx, deps: VictimsDeps): Promise<vo
 
 export function victimHandlers(deps: VictimsDeps): Comp<never> {
   const c = new Comp<never>();
-  c.use(activeHunterOnly(deps.hunters));
+  const gate = activeHunterOnly(deps.hunters);
 
-  c.command('add', async (ctx) => {
+  c.command('add', gate, async (ctx) => {
     await handleAdd(ctx, deps);
   });
 
-  c.command('remove', async (ctx) => {
+  c.command('remove', gate, async (ctx) => {
     await handleRemove(ctx, deps);
   });
 
-  c.command('list', async (ctx) => {
+  c.command('list', gate, async (ctx) => {
     await handleList(ctx, deps);
   });
 

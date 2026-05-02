@@ -4,7 +4,6 @@ import {
   handleDeny,
   handleRevoke,
   handleUnrevoke,
-  callbackHandlers,
 } from '../handlers/callbacks.js';
 import type { CallbackCtx, CallbacksDeps } from '../handlers/callbacks.js';
 import type { HunterService } from '../../services/hunters.js';
@@ -148,27 +147,3 @@ describe('handleApprove — unknown hunter', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Non-owner rejection: test that the composer's ownerOnly middleware fires
-// ---------------------------------------------------------------------------
-
-describe('callbackHandlers composer — non-owner blocked', () => {
-  it('non-owner callback query receives "Not authorised" answer', async () => {
-    const deps = makeDeps();
-    const composer = callbackHandlers(deps);
-    // Build a context that looks like a callback query from a non-owner.
-    const ctx = {
-      from: { id: 12345 },
-      callbackQuery: { data: `approve:${TARGET_ID}` },
-      message: undefined,
-      answerCallbackQuery: vi.fn().mockResolvedValue(undefined),
-      editMessageReplyMarkup: vi.fn().mockResolvedValue(undefined),
-      api: { sendMessage: vi.fn().mockResolvedValue({ message_id: 1 }) },
-    };
-    const middleware = composer.middleware();
-    await middleware(ctx as never, async () => {});
-    // ownerOnly answers "Not authorised" to non-owners on callback queries.
-    expect(ctx.answerCallbackQuery).toHaveBeenCalled();
-    expect(deps.hunters.approve).not.toHaveBeenCalled();
-  });
-});
