@@ -38,6 +38,10 @@ export function createHttpServer(deps: HttpServerDeps): HttpServer {
   app.disable('x-powered-by');
   app.use(express.json({ limit: '16kb' }));
 
+  app.get('/healthz', (_req, res) => {
+    res.status(200).json({ ok: true });
+  });
+
   app.use('/miniapp', createMiniappRouter());
 
   const auth = createInitDataAuth({
