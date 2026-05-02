@@ -76,3 +76,17 @@ export class AuthRequiredError extends ErepError {
 export class SessionStoreError extends ErepError {
   override readonly code = 'SESSION_STORE';
 }
+
+/** Non-2xx response from a game endpoint (campaigns, battle-stats, profile, …)
+ *  that wasn't auth-related. Pollers should treat these as transient and retry. */
+export class ErepHttpError extends ErepError {
+  override readonly code = 'EREP_HTTP';
+  readonly status: number;
+  readonly path: string;
+
+  constructor(path: string, status: number, message?: string, cause?: unknown) {
+    super(message ?? `${path} returned HTTP ${status}`, cause);
+    this.path = path;
+    this.status = status;
+  }
+}

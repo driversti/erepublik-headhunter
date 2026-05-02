@@ -15,6 +15,7 @@ export {
   BadCredentialsError,
   CaptchaGateError,
   CloudflareChallengeError,
+  ErepHttpError,
   LoginLockedOutError,
   MissingCsrfError,
   SessionStoreError,
@@ -26,3 +27,12 @@ export {
   topLevelHeaders,
   xhrHeaders,
 } from './headers.js';
+export type {
+  CampaignsResponse,
+  Battle,
+  BattleZone,
+  WallInfo,
+  SideInfo,
+  CountryInfo,
+} from './types/campaigns.js';
+export { findAirZoneId } from './types/campaigns.js';

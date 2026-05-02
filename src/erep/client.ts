@@ -1,5 +1,6 @@
 import type { AuthManager } from './auth.js';
-import { AuthRequiredError } from './errors.js';
+import { AuthRequiredError, ErepHttpError } from './errors.js';
+import type { CampaignsResponse } from './types/campaigns.js';
 import { navigationHeaders, xhrHeaders } from './headers.js';
 import { type Logger, SilentLogger } from './logger.js';
 import { type PlayerInfo, parseHome } from './parse-home.js';
@@ -84,6 +85,19 @@ export class ErepClient {
     }
     const html = await res.text();
     return parseHome(html);
+  }
+
+  /**
+   * GET /en/military/campaignsJson/list — public, no auth, no cookies needed.
+   * Used by the polling engine to discover active battles every 60s.
+   */
+  async listCampaigns(): Promise<CampaignsResponse> {
+    const path = '/en/military/campaignsJson/list';
+    const res = await this.getPublic(path);
+    if (!res.ok) {
+      throw new ErepHttpError(path, res.status);
+    }
+    return (await res.json()) as CampaignsResponse;
   }
 
   // ===========================================================================

@@ -1,0 +1,35 @@
+{
+  "battles": {
+    "869119": {
+      "id": 869119,
+      "war_id": 204121,
+      "zone_id": 5,
+      "is_rw": false,
+      "is_as": false,
+      "type": "tanks",
+      "start": 1769337065,
+      "det": 1,
+      "region": { "id": 91, "name": "Northern Basarabia" },
+      "city": { "id": 271, "name": "Balti" },
+      "is_dict": false,
+      "is_lib": false,
+      "war_type": "direct",
+      "inv": { "id": 40, "allies": [], "ally_list": [], "points": 15 },
+      "def": { "id": 52, "allies": [], "ally_list": [], "points": 74 },
+      "div": {
+        "37857731": { "id": 37857731, "div": 1, "end": 1769344144, "division_end": true, "epic": 0, "epic_type": 0, "intensity_scale": "cold_war", "co": { "inv": [], "def": [] }, "wall": { "for": 40, "dom": 99.83 }, "terrain": 0 },
+        "37857735": { "id": 37857735, "div": 11, "end": null, "division_end": false, "epic": 0, "epic_type": 0, "intensity_scale": "cold_war", "co": { "inv": [], "def": [] }, "wall": { "for": 52, "dom": 62.59 }, "terrain": 0 }
+      },
+      "terrainTypes": [0],
+      "effects": null,
+      "hasMultipleTerrains": false,
+      "isMultiZone": true
+    }
+  },
+  "countries": {
+    "40": { "id": 40, "name": "Lithuania", "allies": [], "is_empire": false, "cotd": 0 },
+    "52": { "id": 52, "name": "Romania", "allies": [], "is_empire": false, "cotd": 0 }
+  },
+  "last_updated": 1769344252,
+  "time": 1769344632
+}
