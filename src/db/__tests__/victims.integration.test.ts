@@ -137,6 +137,40 @@ describe('VictimRepo', () => {
     expect(ids.sort()).toEqual(['1', '2']);
   });
 
+  it('listAllForMatching() returns dense (hunter, citizen) pairs across hunters', async () => {
+    await hunters().register({ telegramId: 200n, username: 'bob' });
+    await victims().add({
+      hunterTelegramId: HUNTER,
+      citizenId: 1n,
+      citizenName: 'A',
+      citizenCountry: null,
+      avatarUrl: null,
+      nickname: null,
+    });
+    await victims().add({
+      hunterTelegramId: 200n,
+      citizenId: 1n,
+      citizenName: 'A',
+      citizenCountry: null,
+      avatarUrl: null,
+      nickname: null,
+    });
+    await victims().add({
+      hunterTelegramId: 200n,
+      citizenId: 2n,
+      citizenName: 'B',
+      citizenCountry: null,
+      avatarUrl: null,
+      nickname: null,
+    });
+    const pairs = await victims().listAllForMatching();
+    expect(pairs).toHaveLength(3);
+    const sorted = pairs
+      .map((p) => `${p.hunter}-${p.citizen}`)
+      .sort();
+    expect(sorted).toEqual(['100-1', '200-1', '200-2']);
+  });
+
   it('victims are deleted when the hunter is deleted (FK CASCADE)', async () => {
     await victims().add({
       hunterTelegramId: HUNTER,
