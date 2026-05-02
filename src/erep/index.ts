@@ -6,6 +6,7 @@ export {
   FileSessionStore,
   MemorySessionStore,
 } from './session-store.js';
+export { PostgresSessionStore } from './postgres-session-store.js';
 export { type PlayerInfo, parseHome } from './parse-home.js';
 export { type Logger, ConsoleLogger, MemoryLogger, SilentLogger } from './logger.js';
 export {
