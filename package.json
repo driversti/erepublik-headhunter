@@ -13,6 +13,10 @@
     "test": "vitest run --exclude '**/*.integration.test.ts'",
     "test:watch": "vitest --exclude '**/*.integration.test.ts'",
     "test:integration": "node --env-file=.env ./node_modules/vitest/dist/cli.js run src/erep/__tests__/auth.integration.test.ts",
+    "test:db": "vitest run 'src/db/**/*.integration.test.ts' src/erep/__tests__/postgres-session-store.integration.test.ts",
+    "db:migrate": "node-pg-migrate -f migrate-config.cjs up",
+    "db:migrate:down": "node-pg-migrate -f migrate-config.cjs down",
+    "db:migrate:create": "node-pg-migrate -f migrate-config.cjs create",
     "demo:login": "node --env-file=.env --import tsx scripts/login-demo.ts",
     "demo:setcookie": "node --env-file=.env --import tsx scripts/set-cookie.ts"
   },
