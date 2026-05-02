@@ -18,7 +18,8 @@
     "db:migrate:down": "node-pg-migrate down",
     "db:migrate:create": "node-pg-migrate create -j sql",
     "demo:login": "node --env-file=.env --import tsx scripts/login-demo.ts",
-    "demo:setcookie": "node --env-file=.env --import tsx scripts/set-cookie.ts"
+    "demo:setcookie": "node --env-file=.env --import tsx scripts/set-cookie.ts",
+    "demo:inspect-battle-stats": "node --env-file=.env --import tsx scripts/inspect-battle-stats.ts"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "^11.14.0",

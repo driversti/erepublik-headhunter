@@ -61,4 +61,25 @@ describe('loadConfig', () => {
     const cfg = loadConfig(fullEnv());
     expect(typeof cfg.ownerTelegramId).toBe('bigint');
   });
+
+  it('applies safe defaults for poll-related env vars when unset', () => {
+    const cfg = loadConfig(fullEnv());
+    expect(cfg.pollCampaignsSec).toBe(60);
+    expect(cfg.pollInwindowSec).toBe(30);
+    expect(cfg.windowSeconds).toBe(300);
+    expect(cfg.probeLeadSec).toBe(300);
+    expect(cfg.candidateMinElapsedSec).toBe(5100);
+  });
+
+  it('parses overridden poll-related env vars', () => {
+    const env = { ...fullEnv(), POLL_CAMPAIGNS_SEC: '15', WINDOW_SECONDS: '600' };
+    const cfg = loadConfig(env);
+    expect(cfg.pollCampaignsSec).toBe(15);
+    expect(cfg.windowSeconds).toBe(600);
+  });
+
+  it('rejects non-numeric POLL_CAMPAIGNS_SEC', () => {
+    const env = { ...fullEnv(), POLL_CAMPAIGNS_SEC: 'abc' };
+    expect(() => loadConfig(env)).toThrow(/POLL_CAMPAIGNS_SEC/);
+  });
 });

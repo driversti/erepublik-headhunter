@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+const numericString = (name: string, def: string) =>
+  z
+    .string()
+    .default(def)
+    .refine((s) => /^[0-9]+$/.test(s), `${name} must be numeric`);
+
 const Schema = z.object({
   EREP_EMAIL: z.string().min(1, 'EREP_EMAIL is required'),
   EREP_PASSWORD: z.string().min(1, 'EREP_PASSWORD is required'),
@@ -16,6 +22,11 @@ const Schema = z.object({
     .string()
     .min(1, 'MINIAPP_URL is required')
     .refine((s) => /^https?:\/\//.test(s), 'MINIAPP_URL must be an http(s) URL'),
+  POLL_CAMPAIGNS_SEC: numericString('POLL_CAMPAIGNS_SEC', '60'),
+  POLL_INWINDOW_SEC: numericString('POLL_INWINDOW_SEC', '30'),
+  WINDOW_SECONDS: numericString('WINDOW_SECONDS', '300'),
+  PROBE_LEAD_SEC: numericString('PROBE_LEAD_SEC', '300'),
+  CANDIDATE_MIN_ELAPSED_SEC: numericString('CANDIDATE_MIN_ELAPSED_SEC', '5100'),
 });
 
 export interface Config {
@@ -25,6 +36,11 @@ export interface Config {
   botToken: string;
   ownerTelegramId: bigint;
   miniappUrl: string;
+  pollCampaignsSec: number;
+  pollInwindowSec: number;
+  windowSeconds: number;
+  probeLeadSec: number;
+  candidateMinElapsedSec: number;
 }
 
 export function loadConfig(source: Record<string, string | undefined> = process.env): Config {
@@ -36,5 +52,10 @@ export function loadConfig(source: Record<string, string | undefined> = process.
     botToken: parsed.BOT_TOKEN,
     ownerTelegramId: BigInt(parsed.OWNER_TELEGRAM_ID),
     miniappUrl: parsed.MINIAPP_URL,
+    pollCampaignsSec: Number(parsed.POLL_CAMPAIGNS_SEC),
+    pollInwindowSec: Number(parsed.POLL_INWINDOW_SEC),
+    windowSeconds: Number(parsed.WINDOW_SECONDS),
+    probeLeadSec: Number(parsed.PROBE_LEAD_SEC),
+    candidateMinElapsedSec: Number(parsed.CANDIDATE_MIN_ELAPSED_SEC),
   };
 }
