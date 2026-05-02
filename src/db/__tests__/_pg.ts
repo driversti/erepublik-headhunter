@@ -28,6 +28,10 @@ export function setupPg(): PgContext {
   const ctx: PgContext = { pool: undefined as unknown as pg.Pool, connectionString: '' };
   let container: StartedPostgreSqlContainer;
 
+  // The 60s timeout deliberately overrides vitest.config.ts's `hookTimeout: 15_000`.
+  // Cold-pulling postgres:16-alpine on first CI run can take 20–30s; subsequent
+  // runs reuse the cached image and start in ~5s. The afterAll teardown also
+  // overrides at 30s for graceful pool/container shutdown.
   beforeAll(async () => {
     container = await new PostgreSqlContainer('postgres:16-alpine')
       .withDatabase('headhunter_test')

@@ -1,0 +1,24 @@
+{
+  "citizen": {
+    "id": 12345,
+    "name": "Vincent Boyd",
+    "created_at": "2011-04-12",
+    "is_organization": false,
+    "is_alive": true,
+    "has_avatar": true,
+    "avatar_version": "fa70b874e2f337186b979af9404828eb",
+    "avatar_file": "png",
+    "level": 1066,
+    "avatar": "https://cdnt.erepublik.net/AvatarFor1234.jpg",
+    "profile_url": "//www.erepublik.com/en/citizen/profile/12345",
+    "onlineStatus": true,
+    "banStatus": { "type": false, "reason": false },
+    "nextLevelXp": 8330000
+  },
+  "citizenshipCountry": {
+    "id": 197,
+    "name": "USA",
+    "permalink": "USA",
+    "empire": 0
+  }
+}

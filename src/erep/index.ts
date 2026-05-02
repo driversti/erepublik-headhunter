@@ -15,6 +15,7 @@ export {
   BadCredentialsError,
   CaptchaGateError,
   CloudflareChallengeError,
+  ErepHttpError,
   LoginLockedOutError,
   MissingCsrfError,
   SessionStoreError,
@@ -26,3 +27,20 @@ export {
   topLevelHeaders,
   xhrHeaders,
 } from './headers.js';
+export type {
+  CampaignsResponse,
+  Battle,
+  BattleZone,
+  WallInfo,
+  SideInfo,
+  CountryInfo,
+} from './types/campaigns.js';
+export { findAirZoneId } from './types/campaigns.js';
+export type {
+  BattleStatsResponse,
+  DivisionStats,
+  FighterRow,
+  TopDamageEntry,
+} from './types/battle-stats.js';
+export { flattenTopDamage } from './types/battle-stats.js';
+export { type CitizenProfile, parseCitizenProfileJson } from './types/citizen-profile.js';

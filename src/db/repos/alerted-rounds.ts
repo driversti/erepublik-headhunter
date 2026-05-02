@@ -46,8 +46,8 @@ export class AlertedRoundsRepo {
   /** Returns the number of rows deleted. Used by the daily cleanup job. */
   async pruneOlderThan(input: PruneInput): Promise<number> {
     const result = await this.pool.query(
-      `DELETE FROM alerted_rounds WHERE alerted_at < NOW() - ($1 || ' hours')::interval`,
-      [input.olderThanHours.toString()],
+      `DELETE FROM alerted_rounds WHERE alerted_at < NOW() - (INTERVAL '1 hour' * $1)`,
+      [input.olderThanHours],
     );
     return result.rowCount ?? 0;
   }
