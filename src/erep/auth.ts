@@ -179,6 +179,18 @@ export class AuthManager {
     return this.nextAttemptAt > this.now();
   }
 
+  /**
+   * Returns the in-memory cached `SessionRecord` without making any network
+   * call. Returns `null` if no session has been loaded or the cache was
+   * cleared (e.g. after `invalidate()`).
+   *
+   * Intended for status / diagnostic commands that want to show whether a
+   * session is resident in memory without triggering a re-login.
+   */
+  peekCachedSession(): SessionRecord | null {
+    return this.cachedRecord;
+  }
+
   /** Returns the current cookie jar as a `Cookie:` header. ErepClient uses it. */
   async getCookieHeader(): Promise<string> {
     await this.getErpk();
