@@ -17,9 +17,17 @@
     "demo:setcookie": "node --env-file=.env --import tsx scripts/set-cookie.ts"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "^11.14.0",
     "@types/node": "^22.9.0",
+    "@types/pg": "^8.20.0",
+    "testcontainers": "^11.14.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "node-pg-migrate": "^8.0.4",
+    "pg": "^8.20.0",
+    "zod": "^4.4.2"
   }
 }
