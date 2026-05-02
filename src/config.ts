@@ -29,6 +29,8 @@ const Schema = z.object({
   CANDIDATE_MIN_ELAPSED_SEC: numericString('CANDIDATE_MIN_ELAPSED_SEC', '5100'),
   HTTP_PORT: numericString('HTTP_PORT', '3000'),
   MINIAPP_INITDATA_TTL_SEC: numericString('MINIAPP_INITDATA_TTL_SEC', '86400'),
+  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info'),
+  LOG_PRETTY: z.enum(['true', 'false']).default('false'),
 });
 
 export interface Config {
@@ -45,6 +47,8 @@ export interface Config {
   candidateMinElapsedSec: number;
   httpPort: number;
   miniappInitDataTtlSec: number;
+  logLevel: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'silent';
+  logPretty: boolean;
 }
 
 export function loadConfig(source: Record<string, string | undefined> = process.env): Config {
@@ -63,5 +67,7 @@ export function loadConfig(source: Record<string, string | undefined> = process.
     candidateMinElapsedSec: Number(parsed.CANDIDATE_MIN_ELAPSED_SEC),
     httpPort: Number(parsed.HTTP_PORT),
     miniappInitDataTtlSec: Number(parsed.MINIAPP_INITDATA_TTL_SEC),
+    logLevel: parsed.LOG_LEVEL,
+    logPretty: parsed.LOG_PRETTY === 'true',
   };
 }
