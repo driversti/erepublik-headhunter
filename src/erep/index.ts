@@ -36,3 +36,10 @@ export type {
   CountryInfo,
 } from './types/campaigns.js';
 export { findAirZoneId } from './types/campaigns.js';
+export type {
+  BattleStatsResponse,
+  DivisionStats,
+  FighterRow,
+  TopDamageEntry,
+} from './types/battle-stats.js';
+export { flattenTopDamage } from './types/battle-stats.js';

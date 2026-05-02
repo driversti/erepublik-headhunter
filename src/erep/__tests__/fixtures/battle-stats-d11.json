@@ -1,0 +1,48 @@
+{
+  "stats": {
+    "personal": [],
+    "current": {
+      "8": {
+        "11": {
+          "52": {
+            "38158390": {
+              "top_damage": [
+                { "battle_zone_id": 38158390, "battle_id": 869119, "zone_id": 8, "division": 11, "citizen_id": 7780887, "damage": 28329, "kills": 19, "side_country_id": 52, "type": "top_damage", "level": 1690, "sector": "" }
+              ]
+            }
+          },
+          "72": {
+            "38158390": {
+              "top_damage": [
+                { "battle_zone_id": 38158390, "battle_id": 869119, "zone_id": 8, "division": 11, "citizen_id": 9637574, "damage": 146160, "kills": 210, "side_country_id": 72, "type": "top_damage", "level": 775, "sector": "" }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "overall": []
+  },
+  "zone_finished": false,
+  "division": {
+    "created_at": 1770898418,
+    "bar": { "38158390": 72 },
+    "domination": { "38158390": 83.7646 },
+    "defence_shield": { "38158390": 0 },
+    "52": { "38158390": { "domination": 0, "won": 0 } },
+    "72": { "38158390": { "domination": 90, "won": 0 } }
+  },
+  "fightersData": {
+    "7780887": { "id": 7780887, "name": "NuRupeNik", "avatar": "https://cdnt.erepublik.net/x.jpg" },
+    "9637574": { "id": 9637574, "name": "K0rsakoff", "avatar": "https://cdnt.erepublik.net/y.jpg" }
+  },
+  "opponentsInQueue": 0,
+  "isInQueue": false,
+  "campaigns": [],
+  "epicBattle": 0,
+  "activeEffects": [],
+  "battleEffects": {},
+  "maxHit": 134,
+  "most_contested": [],
+  "battle_zone_situation": { "38158390": 0 }
+}

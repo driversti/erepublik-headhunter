@@ -1,6 +1,7 @@
 import type { AuthManager } from './auth.js';
 import { AuthRequiredError, ErepHttpError } from './errors.js';
 import type { CampaignsResponse } from './types/campaigns.js';
+import type { BattleStatsResponse } from './types/battle-stats.js';
 import { navigationHeaders, xhrHeaders } from './headers.js';
 import { type Logger, SilentLogger } from './logger.js';
 import { type PlayerInfo, parseHome } from './parse-home.js';
@@ -98,6 +99,24 @@ export class ErepClient {
       throw new ErepHttpError(path, res.status);
     }
     return (await res.json()) as CampaignsResponse;
+  }
+
+  /**
+   * GET /en/military/battle-stats/{battleId}/{division}/{battleZoneId} — auth'd.
+   * Used during deep scans and in-window monitoring (SPEC §4.4 layers 2 + 3).
+   * Defaults to division 11 (air) since this bot only tracks air rounds.
+   */
+  async getBattleStats(
+    battleId: number | bigint,
+    battleZoneId: number | bigint,
+    division: number = 11,
+  ): Promise<BattleStatsResponse> {
+    const path = `/en/military/battle-stats/${battleId}/${division}/${battleZoneId}`;
+    const res = await this.get(path);
+    if (!res.ok) {
+      throw new ErepHttpError(path, res.status);
+    }
+    return (await res.json()) as BattleStatsResponse;
   }
 
   // ===========================================================================

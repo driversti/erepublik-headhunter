@@ -6,10 +6,12 @@ import { ErepClient } from '../client.js';
 import { AuthManager } from '../auth.js';
 import { MemorySessionStore } from '../session-store.js';
 import { findAirZoneId } from '../types/campaigns.js';
-import { fakeFetch } from './_helpers.js';
+import { fakeFetch, loggedInHomeHtml } from './_helpers.js';
+import { flattenTopDamage } from '../types/battle-stats.js';
 
 const FIX_DIR = join(dirname(fileURLToPath(import.meta.url)), 'fixtures');
 const campaignsListJson = readFileSync(join(FIX_DIR, 'campaigns-list.json'), 'utf8');
+const battleStatsJson = readFileSync(join(FIX_DIR, 'battle-stats-d11.json'), 'utf8');
 
 function makePublicClient(routes: Parameters<typeof fakeFetch>[0]): ErepClient {
   const { fetch } = fakeFetch(routes);
@@ -19,6 +21,23 @@ function makePublicClient(routes: Parameters<typeof fakeFetch>[0]): ErepClient {
     store: new MemorySessionStore(),
     fetch,
   });
+  return new ErepClient({ auth, fetch });
+}
+
+async function makeAuthedClient(routes: Parameters<typeof fakeFetch>[0]): Promise<ErepClient> {
+  const fullRoutes = {
+    'GET https://www.erepublik.com/en': [{ status: 200, body: loggedInHomeHtml() }],
+    ...routes,
+  };
+  const { fetch } = fakeFetch(fullRoutes);
+  const auth = new AuthManager({
+    email: 'bot@example.com',
+    password: 'x',
+    store: new MemorySessionStore(),
+    fetch,
+  });
+  // Pre-load cookies. setCookiesManually consumes the GET /en validation route.
+  await auth.setCookiesManually({ erpk: 'INITIAL' });
   return new ErepClient({ auth, fetch });
 }
 
@@ -52,5 +71,39 @@ describe('ErepClient.listCampaigns', () => {
       ],
     });
     await expect(client.listCampaigns()).rejects.toThrow(/HTTP 503/);
+  });
+});
+
+describe('ErepClient.getBattleStats', () => {
+  it('parses battle-stats and exposes division + fightersData', async () => {
+    const client = await makeAuthedClient({
+      'GET https://www.erepublik.com/en/military/battle-stats/869119/11/38158390': [
+        { status: 200, body: battleStatsJson, headers: { 'content-type': 'application/json' } },
+      ],
+    });
+    const res = await client.getBattleStats(869119, 38158390);
+    expect(res.zone_finished).toBe(false);
+    expect(res.division.bar['38158390']).toBe(72);
+    expect(res.fightersData['9637574']?.name).toBe('K0rsakoff');
+  });
+
+  it('flattenTopDamage returns top_damage entries for the air division', async () => {
+    const client = await makeAuthedClient({
+      'GET https://www.erepublik.com/en/military/battle-stats/869119/11/38158390': [
+        { status: 200, body: battleStatsJson, headers: { 'content-type': 'application/json' } },
+      ],
+    });
+    const res = await client.getBattleStats(869119, 38158390);
+    const fighters = flattenTopDamage(res, 8, 11);
+    expect(fighters.map((f) => f.citizen_id).sort()).toEqual([7780887, 9637574]);
+  });
+
+  it('throws ErepHttpError on non-200', async () => {
+    const client = await makeAuthedClient({
+      'GET https://www.erepublik.com/en/military/battle-stats/1/11/2': [
+        { status: 500, body: 'oops' },
+      ],
+    });
+    await expect(client.getBattleStats(1, 2)).rejects.toThrow(/HTTP 500/);
   });
 });
