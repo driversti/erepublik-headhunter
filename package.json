@@ -19,7 +19,9 @@
     "db:migrate:create": "node-pg-migrate create -j sql",
     "demo:login": "node --env-file=.env --import tsx scripts/login-demo.ts",
     "demo:setcookie": "node --env-file=.env --import tsx scripts/set-cookie.ts",
-    "demo:inspect-battle-stats": "node --env-file=.env --import tsx scripts/inspect-battle-stats.ts"
+    "demo:inspect-battle-stats": "node --env-file=.env --import tsx scripts/inspect-battle-stats.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/src/index.js"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "^11.14.0",
