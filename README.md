@@ -15,7 +15,8 @@ authentication + HTTP client module.
 - [x] Typed `whoAmI()` snapshot — `PlayerInfo`
 - [x] Manual cookie injection — `setCookiesManually` (powers SPEC §4.5 `/setcookie`)
 - [x] Error taxonomy: `BadCredentialsError` / `CaptchaGateError` / `CloudflareChallengeError` / `LoginLockedOutError` / `AuthRequiredError`
-- [ ] Postgres `bot_session` row (interface ready, implementation deferred)
+- [x] Postgres persistence — migrations + repos for hunters/victims/audit/alerted_rounds
+- [x] `PostgresSessionStore` — drop-in for `FileSessionStore`
 - [ ] grammY bot, polling engine, Mini App, Docker — see SPEC §15
 
 ## Setup
@@ -99,6 +100,26 @@ hook the future Telegram bot will use to DM the owner.
 When `ErepClient` gets a 401/403/redirect-to-login response, it forces
 `auth.refresh()` and retries the request once. A second auth failure on the
 same request throws `AuthRequiredError` without further retries.
+
+## Database
+
+Postgres-backed persistence for hunters, victims, audit log, alerted-round
+dedup, and the bot's own session row. Migrations live in `migrations/` and
+run via `node-pg-migrate`.
+
+```bash
+# Run migrations against $DATABASE_URL
+npm run db:migrate
+
+# Roll back the last migration
+npm run db:migrate:down
+
+# Generate a new migration file
+npm run db:migrate:create -- my_change
+
+# Run integration tests (spins up Postgres via Testcontainers; needs Docker)
+npm run test:db
+```
 
 ## CAPTCHA gate
 
