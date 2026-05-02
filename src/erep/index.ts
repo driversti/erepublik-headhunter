@@ -43,3 +43,4 @@ export type {
   TopDamageEntry,
 } from './types/battle-stats.js';
 export { flattenTopDamage } from './types/battle-stats.js';
+export { type CitizenProfile, parseCitizenProfile } from './types/citizen-profile.js';

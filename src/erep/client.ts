@@ -2,6 +2,7 @@ import type { AuthManager } from './auth.js';
 import { AuthRequiredError, ErepHttpError } from './errors.js';
 import type { CampaignsResponse } from './types/campaigns.js';
 import type { BattleStatsResponse } from './types/battle-stats.js';
+import { parseCitizenProfile, type CitizenProfile } from './types/citizen-profile.js';
 import { navigationHeaders, xhrHeaders } from './headers.js';
 import { type Logger, SilentLogger } from './logger.js';
 import { type PlayerInfo, parseHome } from './parse-home.js';
@@ -117,6 +118,23 @@ export class ErepClient {
       throw new ErepHttpError(path, res.status);
     }
     return (await res.json()) as BattleStatsResponse;
+  }
+
+  /**
+   * GET /en/citizen/profile/{citizenId} — auth'd HTML page.
+   * Returns null when the citizen does not exist (the page renders without
+   * the citizen_profile container). Used by the bot's /add command for hard
+   * validation per SPEC §4.2.
+   */
+  async getCitizenProfile(citizenId: number | bigint): Promise<CitizenProfile | null> {
+    const path = `/en/citizen/profile/${citizenId}`;
+    const res = await this.get(path);
+    if (!res.ok) {
+      throw new ErepHttpError(path, res.status);
+    }
+    const html = await res.text();
+    const id = typeof citizenId === 'bigint' ? Number(citizenId) : citizenId;
+    return parseCitizenProfile(id, html);
   }
 
   // ===========================================================================
