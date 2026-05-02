@@ -2,7 +2,7 @@ import type { AuthManager } from './auth.js';
 import { AuthRequiredError, ErepHttpError } from './errors.js';
 import type { CampaignsResponse } from './types/campaigns.js';
 import type { BattleStatsResponse } from './types/battle-stats.js';
-import { parseCitizenProfile, type CitizenProfile } from './types/citizen-profile.js';
+import { parseCitizenProfileJson, type CitizenProfile } from './types/citizen-profile.js';
 import { navigationHeaders, xhrHeaders } from './headers.js';
 import { type Logger, SilentLogger } from './logger.js';
 import { type PlayerInfo, parseHome } from './parse-home.js';
@@ -121,20 +121,23 @@ export class ErepClient {
   }
 
   /**
-   * GET /en/citizen/profile/{citizenId} — auth'd HTML page.
-   * Returns null when the citizen does not exist (the page renders without
-   * the citizen_profile container). Used by the bot's /add command for hard
-   * validation per SPEC §4.2.
+   * GET /en/main/citizen-profile-json-global/{citizenId} — JSON endpoint.
+   * Returns null when the citizen does not exist (the response is
+   * `{"error": true, "message": "citizen error"}`). Used by the bot's
+   * /add command for hard validation per SPEC §4.2.
+   *
+   * Auth: technically optional but the response is richer with a session
+   * cookie (friendship flags, etc.). We call it via the auth'd path so the
+   * bot's session is reused.
    */
   async getCitizenProfile(citizenId: number | bigint): Promise<CitizenProfile | null> {
-    const path = `/en/citizen/profile/${citizenId}`;
+    const path = `/en/main/citizen-profile-json-global/${citizenId}`;
     const res = await this.get(path);
     if (!res.ok) {
       throw new ErepHttpError(path, res.status);
     }
-    const html = await res.text();
-    const id = typeof citizenId === 'bigint' ? Number(citizenId) : citizenId;
-    return parseCitizenProfile(id, html);
+    const json = await res.json();
+    return parseCitizenProfileJson(json);
   }
 
   // ===========================================================================

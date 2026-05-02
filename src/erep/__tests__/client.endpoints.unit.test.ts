@@ -12,8 +12,8 @@ import { flattenTopDamage } from '../types/battle-stats.js';
 const FIX_DIR = join(dirname(fileURLToPath(import.meta.url)), 'fixtures');
 const campaignsListJson = readFileSync(join(FIX_DIR, 'campaigns-list.json'), 'utf8');
 const battleStatsJson = readFileSync(join(FIX_DIR, 'battle-stats-d11.json'), 'utf8');
-const profileHtml = readFileSync(join(FIX_DIR, 'citizen-profile.html'), 'utf8');
-const profileNotFoundHtml = readFileSync(join(FIX_DIR, 'citizen-profile-not-found.html'), 'utf8');
+const profileJson = readFileSync(join(FIX_DIR, 'citizen-profile.json'), 'utf8');
+const profileNotFoundJson = readFileSync(join(FIX_DIR, 'citizen-profile-not-found.json'), 'utf8');
 
 function makePublicClient(routes: Parameters<typeof fakeFetch>[0]): ErepClient {
   const { fetch } = fakeFetch(routes);
@@ -113,23 +113,23 @@ describe('ErepClient.getBattleStats', () => {
 describe('ErepClient.getCitizenProfile', () => {
   it('returns parsed profile for an existing citizen', async () => {
     const client = await makeAuthedClient({
-      'GET https://www.erepublik.com/en/citizen/profile/12345': [
-        { status: 200, body: profileHtml, headers: { 'content-type': 'text/html' } },
+      'GET https://www.erepublik.com/en/main/citizen-profile-json-global/12345': [
+        { status: 200, body: profileJson, headers: { 'content-type': 'application/json' } },
       ],
     });
     const profile = await client.getCitizenProfile(12345);
     expect(profile).toEqual({
       citizenId: 12345,
       name: 'Vincent Boyd',
-      country: 'United States of America',
+      country: 'USA',
       avatarUrl: 'https://cdnt.erepublik.net/AvatarFor1234.jpg',
     });
   });
 
-  it('returns null when the page reports the citizen does not exist', async () => {
+  it('returns null when the response signals citizen-not-found error', async () => {
     const client = await makeAuthedClient({
-      'GET https://www.erepublik.com/en/citizen/profile/999': [
-        { status: 200, body: profileNotFoundHtml, headers: { 'content-type': 'text/html' } },
+      'GET https://www.erepublik.com/en/main/citizen-profile-json-global/999': [
+        { status: 200, body: profileNotFoundJson, headers: { 'content-type': 'application/json' } },
       ],
     });
     expect(await client.getCitizenProfile(999)).toBeNull();
@@ -137,8 +137,8 @@ describe('ErepClient.getCitizenProfile', () => {
 
   it('throws ErepHttpError on non-200', async () => {
     const client = await makeAuthedClient({
-      'GET https://www.erepublik.com/en/citizen/profile/1': [
-        { status: 500, body: 'err', headers: { 'content-type': 'text/html' } },
+      'GET https://www.erepublik.com/en/main/citizen-profile-json-global/1': [
+        { status: 500, body: 'err' },
       ],
     });
     await expect(client.getCitizenProfile(1)).rejects.toThrow(/HTTP 500/);
