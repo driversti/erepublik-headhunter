@@ -69,8 +69,8 @@ describe('VictimRepo', () => {
     expect(await victims().listForHunter(200n)).toHaveLength(1);
   });
 
-  it('removeByCitizenId() returns true when a row was deleted, false otherwise', async () => {
-    await victims().add({
+  it('removeByCitizenId() returns the deleted row, then null on second call', async () => {
+    const added = await victims().add({
       hunterTelegramId: HUNTER,
       citizenId: 1n,
       citizenName: 'A',
@@ -78,8 +78,11 @@ describe('VictimRepo', () => {
       avatarUrl: null,
       nickname: null,
     });
-    expect(await victims().removeByCitizenId({ hunterTelegramId: HUNTER, citizenId: 1n })).toBe(true);
-    expect(await victims().removeByCitizenId({ hunterTelegramId: HUNTER, citizenId: 1n })).toBe(false);
+    const first = await victims().removeByCitizenId({ hunterTelegramId: HUNTER, citizenId: 1n });
+    expect(first?.id).toBe(added.id);
+    expect(first?.citizen_name).toBe('A');
+    const second = await victims().removeByCitizenId({ hunterTelegramId: HUNTER, citizenId: 1n });
+    expect(second).toBeNull();
   });
 
   it('listForHunter() orders by added_at ASC', async () => {
