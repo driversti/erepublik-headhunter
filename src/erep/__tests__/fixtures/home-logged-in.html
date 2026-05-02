@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!-- Synthetic fixture matching the real /en HTML structure observed during PoC.
+     Contains all the fields parse-home extracts. NOT a verbatim capture — the
+     real page is ~125 KB; this is a minimal stand-in with the markers in the
+     same shapes the regexes target. Replace with a real capture (sanitized)
+     when the test account is reachable without CAPTCHA. -->
+<html ng-app="ErpkApp" ng-jq="$j" lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>eRepublik</title>
+</head>
+<body>
+<div id="header">
+  <span class="currency_amount">
+    <img alt="UAH" title="UAH"/>
+    <strong id="side_bar_currency_account_value" data-amount="1000">1,000.00</strong>
+  </span>
+  <strong id="side_bar_gold_account_value" data-amount="1">1.00</strong>
+  <q id="currentEnergy">200</q>
+  <q id="energyLimit">200</q>
+</div>
+
+<script>
+window.SERVER_DATA = {"angularTemplates":{"CitizenAchievements":"/templates/CitizenAchievements.tpl.html?v=1"},"citizen":{"citizenId":9744640,"isOrganization":0,"isAdult":false,"isNewCitizen":true,"country":40,"citizenshipCountryId":40,"name":"baryga2026","avatar":"https://cdnt.erepublik.net/avatar.gif","currency":"UAH","citizenshipCurrencyName":"UAH","isEmpire":false,"isDictatorship":0,"countryLocationId":40,"regionLocationId":136,"countryLocationName":"Ukraine","countryLocationPermalink":"Ukraine","residence":{"hasResidence":0,"cityId":0,"regionId":0,"countryId":0,"bonuses":[]},"division":1,"muId":239,"muCountryId":40,"regimentId":3187,"party":[],"energy":200,"energyToRecover":200,"energyFromFoodRemaining":0,"energyPerInterval":10,"hasFoodInInventory":true,"gold":1,"currencyAmount":1000,"userLevel":1,"hasCoreLoopAccess":false,"canWorkTrainAgainIn":63491,"currentExperiencePoints":0,"dailyOrders":[]}};
+</script>
+
+<a href="//www.erepublik.com/en/main/notifications">Notifications</a>
+</body>
+</html>

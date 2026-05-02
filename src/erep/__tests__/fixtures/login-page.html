@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html ng-app="ErpkApp" ng-jq="$j" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="title" content="eRepublik">
+<meta name="robots" content="index, follow">
+<meta name="description" content="The New World">
+<meta name="keywords" content="">
+<meta name="language" content="en">
+<meta property="og:image" content="//www.erepublik.net/images/modules/homepage/logo.png">
+<meta itemprop="name" content="eRepublik - The New World | Online Social Strategy Game">
+<meta itemprop="description" content="Create your Citizen and you will have the opportunity to develop your military, economy or political career.">
+<meta itemprop="image" content="//www.erepublik.net/images/modules/homepage/logo.png">
+<title>eRepublik</title>
+
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link href="/css/fonts/Franchise/font.1698060170.css" rel="stylesheet" type="text/css">
+<link href="/css/fonts/Delicious/font.1698060170.css" rel="stylesheet" type="text/css">
+<link href="/css/fonts/DsDigital/font.1698060170.css" rel="stylesheet" type="text/css">
+<link href="/css/fonts/Icons/font.1698060170.css" rel="stylesheet" type="text/css">
+<link href="//www.erepublik.net/css/cmp/select2.1776770144.css" rel="stylesheet" type="text/css" media="screen">
+<link rel="stylesheet" href="//www.erepublik.net/css/cmp/animations.1776770143.css" type="text/css" media="screen">
+<link rel="stylesheet" href="//www.erepublik.net/css/cmp/layout.1776770144.css" type="text/css" media="screen">
+<link rel="stylesheet" href="//www.erepublik.net/css/cmp/app.1776770144.css" type="text/css" media="screen">
+<link rel="stylesheet" href="//www.erepublik.net/css/cmp/my_land.1776770144.css" type="text/css" media="screen">
+<link rel="stylesheet" href="//www.erepublik.net/css/cmp/sales.1776770144.css" type="text/css" media="screen">
+<link rel="stylesheet" href="//www.erepublik.net/css/cmp/blue_border_popup.1776770144.css" type="text/css" media="screen">
+<link rel="stylesheet" href="//www.erepublik.net/css/cmp/jquery.mCustomScrollbar.1776770144.css" type="text/css" media="screen">
+
+<link href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=Open+Sans+Condensed:300,400,600,700,800%7COpen+Sans:400,400i,600,600i,700,700i%7CPT+Sans+Narrow:400,700&amp;subset=cyrillic,cyrillic-ext,greek,greek-ext,latin-ext,vietnamese" rel="stylesheet" type="text/css">
+<link href="//www.erepublik.net/css/selector.1698060170.css" rel="stylesheet" type="text/css" media="screen">
+
+<!--javascript variables -->
+<script type="text/javascript" charset="utf-8">
+    var culture = 'en';
+    var csrfToken = 'ff4089f642248b9e52301182fc10d3e7';
+    var domainname = 'erepublik.com';
+    var erepublik = {"settings":{"domainname":"erepublik.com","hostname":"www.erepublik.com","economyhostname":"economy.erepublik.com","cookielessHost":"www.erepublik.net","isLive":true,"culture":"en","eDay":6738,"isOnHomepage":false,"requestUri":"L2VuL2xvZ2lu"},"shortcuts":{"links":{"inventory":"/en/main/inventory","myland":"//www.erepublik.com/en/economy/myCompanies","campaigns":"//www.erepublik.com/en/military/campaigns","top_news":"//www.erepublik.com/en/news/international","new_message":"//www.erepublik.com/en/main/messages-compose/0","world_map":"//www.erepublik.com/en/map","military_unit":"//www.erepublik.com/en/main/group-home/military","alerts":"//www.erepublik.com/en/main/notifications","residence":"//www.erepublik.com/en/main/myResidence","armory":"//www.erepublik.com/en/military/armory"},"names":{"inventory":"Storage","myland":"My places","campaigns":"Campaigns","top_news":"Top news","new_message":"New Message","world_map":"World map","military_unit":"Military unit","alerts":"Notifications","residence":"Residence","armory":"Protectors of Nations"}},"angularTemplates":{"CitizenAchievements":"/templates/CitizenAchievements.tpl.html?v=1698060182","DailyMissions":"/templates/DailyMissions.tpl.html?v=1698060182","CitizenRevival":"/templates/CitizenRevival.tpl.html?v=1698060182","LoginRewardsRevival":"/templates/LoginRewardsRevival.tpl.html?v=1698060182","SideNotification":"/templates/SideNotification.tpl.html?v=1698060182","Hovercard":"/templates/Hovercard.tpl.html?v=1698060182"}},
+        Environment = {"facebookSession":0,"isInIframe":false,"isOnFacebook":false,"isWebView":false,"isOnHomepage":false,"isSymfony":true,"logEnabled":false,"hasSessionCaptcha":false,"sessionId":"8a72f6da75b5ed8ba220e1dadf6a829d"},
+        SERVER_DATA = {"csrfToken":"ff4089f642248b9e52301182fc10d3e7","isLoggedIn":false,"fbAppId":300511377223,"fbApiVersion":"v2.8","fbPixelId":258530638768310,"gaPropertyId":"G-PSSBE951PK","extras":"carrots","serverTime":{"rfc":"Sat, 02 May 2026 06:49:07 -0700","dateTime":"2026-05-02 06:49:07","timezone":"PDT","offset":-700,"hour":6,"unix":1777729747,"unixMs":1777729747000},"webDeployEnabled":true},
+        ErpkShop = {"promotions":[],"popupPromotions":[],"battlePromotions":[],"numberOfPurchasablePacks":0,"specialSalesEvent":false},
+        missionsJSON = [],
+        numberOfMissions = 0,
+        dotNotifications = [];
+    var assistantNotifications = dotNotifications;
+
+    if(Environment){
+        Environment.isInIframe = (window.self !== window.top);
+        Environment.isOnFacebook = Environment.facebookSession && Environment.isInIframe && !Environment.isWebView;
+        if (Environment.isInIframe && !Environment.isOnFacebook && !Environment.isWebView) {
+            top.location = self.location
+        }
+    }
+</script>
+<script type="text/javascript" src="//www.erepublik.net/js/jquery.min.1698060179.js"></script>
+<script type="text/javascript">var $j = jQuery.noConflict();</script>
+<script type="text/javascript" src="//www.erepublik.net/js/angular/182/angular.min.1703751706.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/angular/182/angular-sanitize.min.1703751706.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/angular/182/ui-bootstrap-tpls.min.1703751706.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/cmp/erepublik.1776770113.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/cmp/erpk_angular_init.1776770117.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/cmp/erpk_angular_directives.1776770117.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/cmp/erpk_angular_filters.1776770117.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/cmp/erpk_angular_controllers.1776770117.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/analytics.1724399810.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/citizen/energy.1719825491.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/awards/awards.1698060179.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/facebook/facebook_init.1719825491.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/facebook/facebook_canvas.1724835737.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/select2.1698060179.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/jquery.dd.1698060179.js"></script>
+	<script type="text/javascript" src="//www.erepublik.net/js/global.1747737976.js"></script>
+<script type="text/javascript" charset="utf-8">
+    var scriptFeeds_countryAccounts_choose = "Choose",
+        scriptFeeds_proposedCongressman_search = "Search",
+        scriptFeeds_proposedCongressman_close = "Close",
+        scriptFeeds_proposedCongressman_replace = "Replace",
+        scriptFeeds_proposedCongressman_presentation = "Presentation",
+        scriptFeeds_proposedCongressman_no_presentation = "No presentation",
+        scriptFeeds_regionList_select = "Please select a region",
+        citizenship_application_accepted = "Accepted",
+        citizenship_application_canceled = "You have canceled your citizenship application",
+        citizenship_application_cancel_confirm = "Are you sure you want to cancel your citizenship application?",
+        citizen_move_countryList_select = "Please select a country.",
+        citizen_move_regionList_select = "Please select a region",
+        missions_unlock_confirm = "Are you sure you want to unlock for %%1%% Gold?",
+        //company_change_owner_confirm = "//",
+        //company_change_location = "//",
+        //company_change_owner = "//",
+        eat_food_confirm = "One unit of quality %%1%% food will be consumed but you will recover only %%2%% Energy. Would you like to use it anyway?",
+        energy_confirm = "You are about to consume an Energy Bar. This will restore your Energy with %%1%% without affecting your daily food consumption limit. Continue?",
+        energy_confirm_winter_treat = "You are about to consume a Treat. This will restore your Energy with %%1%% without affecting your daily food consumption limit. Continue?",
+        exchange_confirm = "Sell %%1%% for %%2%% ?";
+</script>
+<script type="text/javascript" src="/js/jquery.validate.1698060179.js"></script>
+<script type="text/javascript" src="/js/login/index.1698060179.js"></script>
+<script type="text/javascript" src="/js/homepage/register.1756118596.js"></script>
+<script type="text/javascript" src="/js/jquery.tools.validator.min.1698060179.js"></script>
+<script type="text/javascript" src="/js/prototype.js"></script>
+</head>
+
+<script type="text/javascript">
+        (function(){
+        var dictatorships = {"47":1,"67":1,"26":1,"170":1,"168":1,"28":1,"77":1,"33":1,"166":1,"69":1,"54":1},
+            empires = [],
+            countryId;
+        if (typeof(dictatorships) === 'object') {
+            for (countryId in dictatorships) {
+                if (dictatorships.hasOwnProperty(countryId)) {
+                    erepublik.info.countries[countryId].isDictatorship = true;
+                }
+            }
+        }
+        if (typeof(empires) === 'object') {
+            for (countryId in empires) {
+                if (empires.hasOwnProperty(countryId)) {
+                    erepublik.info.countries[countryId].isEmpire = true;
+                }
+            }
+        }
+    })();
+</script>
+<body id="fullcontent" class="lowered new_register logged_out">
+<a id="scrollToTop" class="scrollToTop" href="javascript:"><i class="fa fa-chevron-circle-down scrollToBottom"></i></a>
+
+		<div id="fb-root"></div>
+		<script type="text/javascript">
+            if (!ErpkFB.isAsyncInit) {
+                ErpkFB.asyncInit({xfbml: true});
+            }
+		</script>
+	<div class="at">
+<div class="ath">
+    <a href="javascript:" id="ambient_toggler" class="ambient_toggler"><span>Ambient on/off</span></a>
+</div>
+</div>
+	<div id="container">
+	            <hovercard-details></hovercard-details>
+
+											<div id="header">
+	
+    <div class="header_top leftFlex">
+
+		
+
+	    
+	    <div class="erpk_time">
+
+	    	<span class="eday">
+				Day <strong>6,738</strong>			</span>
+			<span class="date">May 02</span>
+
+	    </div>
+
+	    <div class="leaderboard">
+				    </div>
+		
+			</div>
+	        <section class="player symfony_logged_out" id="compact_sidebar">
+    <article class="logo">
+        <a href="/"><img src="//www.erepublik.net/images/modules/sidebar/logo_metalic.png" alt="Logo"></a>
+    </article>
+</section>
+	</div>
+					
+
+			
+
+						<div id="content">
+					<script>
+    var SERVER_DATA  = SERVER_DATA || {};
+    SERVER_DATA.isLoggedIn = false;
+</script>
+<div class="half">
+	<h1>Login</h1>
+	<form class="login" id="login_form" method="post" action="/en/login"><input type="hidden" id="_token" name="_token" value="ff4089f642248b9e52301182fc10d3e7" />		<div class="largepadded">
+			<div class="fieldname">Email</div>
+			<input type="text" name="citizen_email" id="citizen_email" value="">			<span class="invalid-small" style="display:none;" id="error_for_citizen_email"></span>
+<span id="error_for_citizen_email_twin" style="float:left;" class="twin-small"></span>		</div>
+		<div class="largepadded">
+			<div class="fieldname">Password</div>
+			<input type="password" name="citizen_password" id="citizen_password" value="">			<span class="invalid-small" style="display:none;" id="error_for_citizen_password"></span>
+<span id="error_for_citizen_password_twin" style="float:left;" class="twin-small"></span>		</div>
+		<div class="largepadded" style="margin-bottom: 10px;">
+			<div class="fieldname"> </div>
+			<p style="width: 255px;">
+				<input type="checkbox" name="remember" id="remember" value="1" class="check" checked>				<label for="remember">Remember me</label>
+			</p>
+		</div>
+		
+		<div class="largepadded">
+			<div class="fieldname"> </div>
+            <button type="submit" name="commit" id="loginButton" class="std_global_btn loginBtn smallSize">Login</button>
+		</div>
+		<div class="largepadded">
+			<div class="fieldname"> </div>
+			<a class="dotted" href="/en/forgot-password">Forgot password</a>		</div>
+	</form></div>
+<div class="half last">
+	<h1>Not a citizen yet?</h1>
+    <p class="largepadded">
+        <a href="/en#register" class="strongbtn2l"><strong>Join now</strong>It's free</a>
+    </p>
+
+	<p class="largepadded" id="signin">
+		<a href="javascript:;" class="facebook_signin fb_btn_style button" title="Sign in with Facebook">
+							<img src="//www.erepublik.net/images/modules/homepage/fb_small.png" alt="">
+							Sign in with Facebook		</a>
+	</p>
+</div>
+		        </div>
+            	<div id="footer">
+
+			<p>
+				<a target="_blank" href="//wiki.erepublik.com">Wiki</a>   |  
+		<a target="_blank" href="//www.erepublik.com/en/main/latest-updates">Latest Updates</a>   |  
+		<a target="_blank" href="//blog.erepublik.com">Blog</a>   |  
+        <!--<a target="_blank" href="//shop.erepublik.com">Shop</a> &nbsp; | &nbsp;-->
+		<a target="_blank" rel="nofollow" href="//www.erepublik.com/en/tickets">Contact</a>   |  
+		<a target="_blank" rel="nofollow" href="//www.erepubliklabs.com/careers">Jobs</a>   |  
+		<a target="_blank" rel="nofollow" href="//www.erepublik.com/en/main/terms-and-conditions">Terms of Service</a>   |  
+		<a target="_blank" rel="nofollow" href="//www.erepublik.com/en/main/privacy-policy">Privacy</a>  |  
+		<a target="_blank" rel="nofollow" href="//wiki.erepublik.com/index.php/Rules">eRepublik Laws</a>
+
+				
+          |   <a href="//forum.erepublik.com/" target="_blank">Forum</a>
+	</p>
+	    
+    
+<p class="follow">Follow us:    <a href="//www.facebook.com/pages/Erepublik/26897053321" title="Facebook" target="_blank"><img alt="Facebook" src="//www.erepublik.net/images/parts/facebook_small_icon.png" title="Facebook">Facebook</a>
+    <a href="//www.twitter.com/erepublik" title="Twitter" target="_blank"><img alt="Twitter" src="//www.erepublik.net/images/parts/twitter_small_icon.png" title="Twitter">Twitter</a>
+    <a href="https://discord.gg/erepublik" title="Discord" target="_blank"><img alt="Discord" src="//www.erepublik.net/images/parts/discord_icon.png" title="Discord">Discord</a>
+    <a href="//www.erepublik.com/en/main/news/rated/all/all/1/rss" class="rss_footer">Articles</a>
+</p>
+    
+<p>
+        <a href="https://erepublik.onelink.me/XHrG/5tr423rd" target="_blank" title="Get the eRepublik App on Google Play">
+        <img title="Get the eRepublik App on Google Play" height="40" src="//www.erepublik.net/images/parts/google_play.svg?1700128400" alt="Google Play Logo">
+    </a>
+        <a href="https://erepublik.onelink.me/XHrG/iwn7wtrl" target="_blank" title="Download eRepublik on App Store">
+        <img title="Download eRepublik on App Store" height="40" src="//www.erepublik.net/images/parts/apple_store.svg?1700128400" alt="App Store Logo">
+    </a>
+</p>
+
+<p>
+    Our other games:    <a href="https://warandpeace.onelink.me/g1tb/xdrlfbuu" target="_blank" title="">War and Peace</a>  |      <a href="https://worldatwar.onelink.me/625496524/6zrj9znp" target="_blank" title="">World at War</a>
+</p>
+	<p>Copyright © 2007-2026 eRepublik</p>
+    <img src="//www.erepublik.net/images/sf_erpk_black_logo.png" alt="StillFront &amp; eRepublik logo" style="margin-bottom:35px;">
+</div>
+	</div>
+
+
+<script type="text/javascript">
+	erepublik.functions.liveClock("live_time",06,48);
+</script>
+
+
+<!-- Correct fb_xd_fragment Bug Start -->
+<script type="text/javascript">
+	$j(document).ready(function() {
+		document.getElementsByTagName('html')[0].style.display='block';
+	});
+</script>
+<!-- Correct fb_xd_fragment Bug End -->
+<div id="shortcut_list" class="shortcuts">
+	<h3>List of eRepublik shortcuts</h3>
+	<ul>
+		<li>
+			<strong>Alerts</strong>
+			<em>Shift + A</em>
+		</li>
+		<li>
+			<strong>Military campaigns</strong>
+			<em>Shift + C</em>
+		</li>
+		<li>
+			<strong>Military unit</strong>
+			<em>Shift + M</em>
+		</li>
+		<li>
+			<strong>My places</strong>
+			<em>Shift + L</em>
+		</li>
+		<li>
+			<strong>New message</strong>
+			<em>Shift + N</em>
+		</li>
+		<li>
+			<strong>Storage</strong>
+			<em>Shift + S</em>
+		</li>
+		<li>
+			<strong>Top news</strong>
+			<em>Shift + T</em>
+		</li>
+		<li>
+			<strong>World map</strong>
+			<em>Shift + W</em>
+		</li>
+	</ul>
+	<em>(press ESC to close)</em>
+</div>
+
+<div id="report_popup" class="global_pack report_popup fadeInRight">
+	<a href="javascript:;" title="Close window" class="close">Close</a>
+	<div class="pack_header">
+		<h2>Report Content</h2>
+	</div>
+	<div class="tab_wrapper">
+		<div class="tab_content">
+			<div class="report_content"></div>
+		</div>
+	</div>
+</div>
+<!--vendetta-->
+
+<div id="promoPopupHolder" style="display:none;">
+    <a href="javascript:;" class="close_action close" title="Close window">
+        <img src="//www.erepublik.net/images/modules/pvp/close_button.png" alt="">
+    </a>
+</div>
+
+
+
+<script type="text/javascript">
+    var erepublik = erepublik || {};
+    $j.extend(erepublik.i18n, obj = {
+        donateToFriend: {
+            close: "Close",
+            write_message: "Add a message",
+            hide_save: "Hide&Save",
+            gift_amount_unavailable: "Amount unavailable!",
+            receiver_must_not_be_sender: "You cannot donate to yourself!",
+            receiver_over_limit: "Amount unavailable!",
+            warning_transaction_in_progress: "<em>Important notice! Our records show that another purchase attempt was initiated for this product. Have you (or a friend) already paid for this product? If yes, please be patient and wait for the payment to process, in order to avoid a double charge. If you purchase the same pack twice, the 2nd purchase will be converted into Game Tokens.<br /><br />If you are sure that you have not already completed the payment for this product, feel free to press ”Continue” and proceed to complete the payment."        }
+    });
+
+
+    $j(document).ready(function () {
+            });
+</script>
+
+<div class="confirmationAlert animated fadeInRight" id="confirmationAlert">
+	<a href="javascript:" class="close"></a>
+	<div class="content">
+		<div class="textWrapper">
+			<div class="text">
+				<span class="icon"></span>
+				<p class="message">Are your sure you want to do this?</p>
+			</div>
+            <label id="confirmationPromptLabel" for="confirmationPrompt" style="display:none">
+                <input type="text" id="confirmationPrompt">
+            </label>
+		</div>
+	</div>
+	<div class="footer">
+		<a id="confirmAlertOK" href="javascript:" class="std_global_btn smallSize greenColor ctaBtn">OK</a>
+		<a id="confirmAlert" href="javascript:" class="std_global_btn smallSize greenColor ctaBtn">Confirm</a>
+		<a id="cancelAlert" href="javascript:" class="std_global_btn smallSize redColor ctaBtn">Cancel</a>
+	</div>
+</div>
+<style>
+    #confirmationAlert #confirmationPromptLabel {display: block;width:100%;padding:10px 10px 0 10px;box-sizing: border-box}
+    #confirmationAlert #confirmationPrompt {width:100%;border:0;border-radius:3px;padding:5px 8px;box-sizing:border-box;margin:0}
+    #confirmationAlert #confirmationPrompt::placeholder {color:#ccc;font-size:11px;font-style:italic}
+</style>
+<script language="javascript" type="text/javascript">//<![CDATA[
+var pkykValidationRules1 = {'citizen_email': {required: 1,required_msg: 'Please type in your email',validators: {sfEmailValidator: {parameters: {email_error: 'The email address is not valid'}},citizenValidator: {parameters: {password: 'citizen_password',messages: {bad_email: 'Wrong citizen email',bad_password: 'Wrong password',bad_validation: 'You didn\'t activate your account yet. Please check your email for instructions.',change_password: 'For your security, we require a password reset. Please use the Forgot Password link to restore access to your account.',old_password: 'You haven\'t logged in in a while. For your own safety, please change your password using the Forgot Password link.',resend_email: 'We have sent you a new activation email. Please check your inbox for instructions.'}}}}},'citizen_password': {required: 1,required_msg: 'Please type in your password'}};
+pkykConf = new Object();
+pkykConf.on = "";
+pkykConf.debug = "";
+pkykConf.checkOnBlur = "1";
+pkykConf.checkOnSubmit = "1";
+pkykConf.displayBlurInlineErrors = "";
+pkykConf.displaySubmitInlineErrors = "";
+pkykConf.inlineErrorId = "error_for_";
+pkykConf.inlineErrorClass = "form_error";
+pkykConf.displayBlurGlobalErrors = "";
+pkykConf.displaySubmitGlobalErrors = "";
+pkykConf.globalErrorClass = "form_error";
+pkykConf.globalErrorTitle = "The following form information has been completed but it contains errors:";
+pkykConf.globalErrorTitleClass = "pkyk_global_title";
+pkykConf.globalErrorFocus = "true;";
+pkykConf.errorPrefix = "";
+pkykConf.errorSuffix = "";
+Event.observe(window, "load", initValidator, false);
+function initValidator() {if(pkykConf.on){var validator1 = new PokeYoke( pkykValidationRules1 );}}
+//]]></script><script type="text/javascript" src="/js/pkykValidator.js"></script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9f577ccb384bec1e',t:'MTc3NzcyOTc0Nw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"ed5099b181bd4cb4af82d75b07e82053","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
