@@ -135,4 +135,12 @@ describe('HTTP integration', () => {
     expect(res.headers['content-type']).toMatch(/text\/html/);
     expect(res.text).toContain('<title>Headhunter</title>');
   });
+
+  it('GET / serves the Mini App HTML (Telegram opens MINIAPP_URL with no path)', async () => {
+    const { http } = buildSystem();
+    const res = await request(http.app).get('/');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/html/);
+    expect(res.text).toContain('<title>Headhunter</title>');
+  });
 });

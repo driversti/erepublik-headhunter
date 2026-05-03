@@ -103,6 +103,24 @@ async function main(): Promise<void> {
   // start everything
   await http.listen(cfg.httpPort);
   engine.start();
+
+  // Persistent chat menu button (bottom-left of the Telegram input field) opens
+  // the Mini App. Set as the global default so every chat with the bot sees it.
+  // Failure is non-fatal — Telegram briefly unavailable shouldn't block boot.
+  bot.api
+    .setChatMenuButton({
+      menu_button: {
+        type: 'web_app',
+        text: '🎯 Open',
+        web_app: { url: cfg.miniappUrl },
+      },
+    })
+    .catch((err) =>
+      logger.warn('bot.menu_button.setup_failed', {
+        error: err instanceof Error ? err.message : String(err),
+      }),
+    );
+
   void bot.start({
     onStart: (botInfo) => logger.info('bot.started', { username: botInfo.username }),
   });
