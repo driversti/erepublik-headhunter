@@ -29,7 +29,10 @@ export function makeResilientSender(deps: ResilientSenderDeps): SendFn {
 
   return async (chatId, html) => {
     try {
-      await deps.api.sendMessage(Number(chatId), html, { parse_mode: 'HTML' });
+      await deps.api.sendMessage(Number(chatId), html, {
+        parse_mode: 'HTML',
+        link_preview_options: { is_disabled: true },
+      });
     } catch (err) {
       if (err instanceof GrammyError) {
         if (err.error_code === 403) {
