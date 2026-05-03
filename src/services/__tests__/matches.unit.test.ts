@@ -66,10 +66,15 @@ describe('MatchesService', () => {
 
     const [chatId, html] = send.mock.calls[0]!;
     expect(chatId).toBe(100n);
-    // Battle line + battlefield URL.
-    expect(html).toContain('USA vs Poland');
-    expect(html).toContain('Lublin');
-    expect(html).toContain('https://www.erepublik.com/en/military/battlefield/869119');
+    // Country names are clickable links to society pages; region is a clickable
+    // link to the battlefield (replacing the previous explicit "Battlefield: …" line).
+    expect(html).toContain(
+      '<a href="https://www.erepublik.com/en/country/society/USA">USA</a> vs <a href="https://www.erepublik.com/en/country/society/Poland">Poland</a>',
+    );
+    expect(html).toContain(
+      'region: <a href="https://www.erepublik.com/en/military/battlefield/869119">Lublin</a>',
+    );
+    expect(html).not.toContain('Battlefield: https://');
     // Timing.
     expect(html).toContain('~4 min');
     expect(html).toContain('64');
@@ -79,6 +84,13 @@ describe('MatchesService', () => {
     const marekIdx = html.indexOf('Marek Nowak');
     expect(vincentIdx).toBeLessThan(marekIdx);
     expect(vincentIdx).toBeGreaterThan(-1);
+    // Victim names are clickable links to their citizen profiles.
+    expect(html).toContain(
+      '<a href="https://www.erepublik.com/en/citizen/profile/12345">Vincent Boyd</a>',
+    );
+    expect(html).toContain(
+      '<a href="https://www.erepublik.com/en/citizen/profile/67890">Marek Nowak</a>',
+    );
     expect(html).toContain('(12345)');
     expect(html).toContain('DEF');
     expect(html).toContain('ATT');

@@ -88,13 +88,14 @@ export class MatchesService {
 export function formatAlertHtml(input: MatchAlertInput): string {
   const e = escapeHtml;
   const sortedVictims = [...input.matchedVictims].sort((a, b) => b.influence - a.influence);
+  const battlefieldUrl = `https://www.erepublik.com/en/military/battlefield/${input.battle.battleId}`;
+  const invLink = `<a href="${countryUrl(input.battle.invName)}">${e(input.battle.invName)}</a>`;
+  const defLink = `<a href="${countryUrl(input.battle.defName)}">${e(input.battle.defName)}</a>`;
+  const regionLink = `<a href="${battlefieldUrl}">${e(input.battle.region)}</a>`;
   const lines: string[] = [];
   lines.push(`🎯 Headhunter alert — air round closing in ~${input.timing.etaMinutes} min`);
   lines.push('');
-  lines.push(`${e(input.battle.invName)} vs ${e(input.battle.defName)} — region: ${e(input.battle.region)}`);
-  lines.push(
-    `Battlefield: https://www.erepublik.com/en/military/battlefield/${input.battle.battleId}`,
-  );
+  lines.push(`${invLink} vs ${defLink} — region: ${regionLink}`);
   lines.push('');
   lines.push(`Wall: ${input.timing.wallDom} % ${e(input.timing.wallHolder)} dominating`);
   lines.push('');
@@ -102,11 +103,19 @@ export function formatAlertHtml(input: MatchAlertInput): string {
   for (const v of sortedVictims) {
     const sideLabel = v.side === 'inv' ? 'ATT' : 'DEF';
     const rankPart = v.airRank !== null ? ` — air rank #${v.airRank}` : '';
+    const profileUrl = `https://www.erepublik.com/en/citizen/profile/${v.citizenId}`;
+    const nameLink = `<a href="${profileUrl}">${e(v.name)}</a>`;
     lines.push(
-      `• ${e(v.name)} (${v.citizenId}) — ${sideLabel} — infl ${formatInfluence(v.influence)}${rankPart}`,
+      `• ${nameLink} (${v.citizenId}) — ${sideLabel} — infl ${formatInfluence(v.influence)}${rankPart}`,
     );
   }
   return lines.join('\n');
+}
+
+// Country society URL pattern per KB: /en/country/society/{Name}, with spaces
+// replaced by hyphens (e.g. "Bosnia and Herzegovina" → "Bosnia-and-Herzegovina").
+function countryUrl(name: string): string {
+  return `https://www.erepublik.com/en/country/society/${name.trim().replace(/\s+/g, '-')}`;
 }
 
 function formatInfluence(n: number): string {

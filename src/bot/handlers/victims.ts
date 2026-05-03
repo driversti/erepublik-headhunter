@@ -77,9 +77,14 @@ export async function handleList(ctx: VictimsCtx, deps: VictimsDeps): Promise<vo
   const lines = rows.map((r) => {
     const tag = r.nickname ? ` "${escapeHtml(r.nickname)}"` : '';
     const country = r.citizen_country ? ` — ${escapeHtml(r.citizen_country)}` : '';
-    return `• <b>${escapeHtml(r.citizen_name)}</b> (${r.citizen_id})${tag}${country}`;
+    const url = `https://www.erepublik.com/en/citizen/profile/${r.citizen_id}`;
+    const name = `<a href="${url}">${escapeHtml(r.citizen_name)}</a>`;
+    return `• <b>${name}</b> (${r.citizen_id})${tag}${country}`;
   });
-  await ctx.reply(lines.join('\n'), { parse_mode: 'HTML' });
+  await ctx.reply(lines.join('\n'), {
+    parse_mode: 'HTML',
+    link_preview_options: { is_disabled: true },
+  });
 }
 
 export function victimHandlers(deps: VictimsDeps): Comp<never> {

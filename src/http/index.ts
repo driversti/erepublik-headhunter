@@ -6,7 +6,7 @@ import type { HunterService } from '../services/hunters.js';
 import type { VictimService } from '../services/victims.js';
 import { createInitDataAuth } from './auth.js';
 import { createApiRouter } from './routes.js';
-import { createMiniappRouter } from './miniapp.js';
+import { createMiniappRouter, miniappStaticFile } from './miniapp.js';
 import { sendError } from './errors.js';
 
 export interface HttpServerDeps {
@@ -43,6 +43,12 @@ export function createHttpServer(deps: HttpServerDeps): HttpServer {
   });
 
   app.use('/miniapp', createMiniappRouter());
+
+  // Telegram opens MINIAPP_URL with no path, so root must serve the same
+  // Mini App HTML — otherwise the browser/WebView shows "Cannot GET /".
+  app.get('/', (_req, res) => {
+    res.type('html').sendFile(miniappStaticFile);
+  });
 
   const auth = createInitDataAuth({
     botToken: deps.botToken,

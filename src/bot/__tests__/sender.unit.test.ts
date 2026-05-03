@@ -46,7 +46,10 @@ describe('makeResilientSender', () => {
       logger: new MemoryLogger(),
     });
     await send(HUNTER, '<b>hi</b>');
-    expect(api.sendMessage).toHaveBeenCalledWith(Number(HUNTER), '<b>hi</b>', { parse_mode: 'HTML' });
+    expect(api.sendMessage).toHaveBeenCalledWith(Number(HUNTER), '<b>hi</b>', {
+      parse_mode: 'HTML',
+      link_preview_options: { is_disabled: true },
+    });
     expect(hunters.revoke).not.toHaveBeenCalled();
   });
 
