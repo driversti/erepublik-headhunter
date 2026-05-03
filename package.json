@@ -3,8 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "eRepublik air-round monitoring bot — auth + HTTP client module",
-  "license": "UNLICENSED",
+  "description": "Self-hosted Telegram bot that alerts hunters when target eRepublik citizens enter air-round combat near round-end.",
+  "license": "MIT",
+  "author": "driversti",
+  "homepage": "https://github.com/driversti/erepublik-headhunter#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/driversti/erepublik-headhunter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/driversti/erepublik-headhunter/issues"
+  },
   "engines": {
     "node": ">=20.6"
   },

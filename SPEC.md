@@ -1,5 +1,16 @@
 # Headhunter — Specification
 
+> **Note for readers**
+>
+> This is the original design document — written before any code was written
+> and updated through the V1 build. It captures *why* every architectural
+> choice was made and what the polling-engine math looks like. It is **not**
+> a user manual; for setup and operation see [README.md](./README.md).
+>
+> Some details (e.g. file-based session storage) have since been superseded by
+> the as-shipped implementation. Source code is the authoritative reference;
+> when in doubt, trust `src/`.
+
 ## 1. Context
 
 You want a tool that lets you **steal Sky Hero medals** and **burn the energy/weapons** of specific players in eRepublik air battles. The medal is awarded per air-division round to the top influence dealer; to steal it you must surpass the leader near the very end of the round. Watching the entire battle list manually is impractical, so the bot polls eRepublik's public campaigns feed, narrows to air rounds that are at least 85 minutes into their 120-minute clock (T85+), then uses an authenticated stats call to project when the round will actually end. When the projection drops to ≤ 5 minutes, the bot checks who is fighting in that round; if any of the hunter's pre-registered "victims" is present, it pings the hunter via Telegram with enough info to deploy and overhit. Access is gated by you (the owner) so the tool stays private to a vetted group.

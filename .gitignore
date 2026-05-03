@@ -1,4 +1,5 @@
-# Local session cache — contains live cookies
+# Local session cache — contains live cookies (legacy file-store; new
+# deployments use the Postgres-backed session store).
 data/
 
 # Env files (creds, tokens)
@@ -9,9 +10,16 @@ data/
 # Node
 node_modules/
 dist/
+coverage/
 *.log
 .DS_Store
 
 # Editor
 .idea/
 .vscode/
+
+# Claude Code workspace metadata
+.claude/
+
+# Docker compose local override (operator-specific VPN creds, etc.)
+docker-compose.override.yml

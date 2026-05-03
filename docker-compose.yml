@@ -2,21 +2,23 @@ services:
   bot:
     build: .
     image: headhunter:local
+    container_name: headhunter
     restart: unless-stopped
     env_file: .env
     environment:
+      # All other vars are pulled from .env via env_file. The ones listed here
+      # have to be templated so DATABASE_URL composes cleanly across hosts.
       DATABASE_URL: postgres://headhunter:${DB_PASSWORD:-headhunter}@db:5432/headhunter
       HTTP_PORT: 3000
     ports:
       - "${HTTP_PORT:-3000}:3000"
-    volumes:
-      - bot_session:/app/data
     depends_on:
       db:
         condition: service_healthy
 
   db:
     image: postgres:16-alpine
+    container_name: headhunter-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: headhunter
@@ -32,4 +34,3 @@ services:
 
 volumes:
   db_data:
-  bot_session:
