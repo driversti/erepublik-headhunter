@@ -89,6 +89,19 @@ describe('computeRefinedEta', () => {
     expect(result?.etaSec).toBeCloseTo(1200, 0);
   });
 
+  it('returns null when division.bar is missing entirely (early-round response shape)', () => {
+    const stats = mockStats({});
+    delete (stats.division as { bar?: unknown }).bar;
+    expect(
+      computeRefinedEta({
+        stats,
+        zoneId: 38158390,
+        roundStartUnix: 1000,
+        serverNowUnix: 1000 + 85 * 60,
+      }),
+    ).toBeNull();
+  });
+
   it('returns null when bar lacks the zone (e.g. round just ended)', () => {
     const stats = mockStats({});
     delete (stats.division.bar as Record<string, number>)['38158390'];

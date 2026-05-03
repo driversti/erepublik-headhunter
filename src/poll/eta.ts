@@ -27,7 +27,9 @@ export function computeRefinedEta(input: {
   serverNowUnix: number;
 }): EtaResult | null {
   const zoneKey = String(input.zoneId);
-  const leaderCountryId = input.stats.division.bar[zoneKey];
+  // `bar` can be omitted altogether on early-round responses where neither
+  // side has yet dominated. The type is optimistic; defend against the wire.
+  const leaderCountryId = input.stats.division.bar?.[zoneKey];
   if (leaderCountryId === undefined) return null;
 
   const leaderPoints = pointsFor(input.stats, leaderCountryId, zoneKey);
