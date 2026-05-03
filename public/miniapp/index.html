@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Headhunter</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+      :root {
+        --bg: var(--tg-theme-bg-color, #1a1a1a);
+        --text: var(--tg-theme-text-color, #f5f5f5);
+        --hint: var(--tg-theme-hint-color, #999);
+        --link: var(--tg-theme-link-color, #4a9eff);
+        --button-bg: var(--tg-theme-button-color, #4a9eff);
+        --button-text: var(--tg-theme-button-text-color, #fff);
+        --secondary-bg: var(--tg-theme-secondary-bg-color, #2a2a2a);
+        --section-bg: var(--tg-theme-section-bg-color, #2a2a2a);
+        --destructive: var(--tg-theme-destructive-text-color, #e84444);
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { height: 100%; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 16px;
+        line-height: 1.4;
+        padding: 0 0 80px 0;
+      }
+      header {
+        padding: 16px;
+        background: var(--section-bg);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+      }
+      header h1 { font-size: 20px; font-weight: 600; }
+      header .status { color: var(--hint); font-size: 13px; margin-top: 4px; }
+      main { padding: 16px; }
+      .victim {
+        display: flex; align-items: center; gap: 12px;
+        background: var(--section-bg);
+        padding: 12px;
+        border-radius: 12px;
+        margin-bottom: 8px;
+      }
+      .victim img { width: 48px; height: 48px; border-radius: 24px; background: var(--secondary-bg); }
+      .victim .meta { flex: 1; min-width: 0; }
+      .victim .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .victim .sub { color: var(--hint); font-size: 13px; }
+      .victim button.remove {
+        background: none; border: none; color: var(--destructive);
+        font-size: 22px; cursor: pointer; padding: 4px 8px;
+      }
+      .empty { text-align: center; color: var(--hint); padding: 40px 16px; }
+      .banner {
+        padding: 12px 16px; margin: 16px; border-radius: 8px;
+        background: var(--secondary-bg); color: var(--text);
+      }
+      .banner.error { color: var(--destructive); }
+      .form-screen { padding: 16px; }
+      .form-screen label { display: block; font-size: 13px; color: var(--hint); margin-bottom: 4px; margin-top: 12px; }
+      .form-screen input {
+        width: 100%; padding: 10px 12px;
+        background: var(--secondary-bg); color: var(--text);
+        border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+        font-size: 16px; font-family: inherit;
+      }
+      .form-screen .error { color: var(--destructive); margin-top: 12px; font-size: 14px; }
+      .hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🎯 Headhunter</h1>
+      <div class="status" id="status">Loading…</div>
+    </header>
+
+    <main id="list-screen">
+      <div id="victim-list"></div>
+      <div class="empty hidden" id="empty">No targets yet. Tap “Add target” below.</div>
+    </main>
+
+    <div class="form-screen hidden" id="form-screen">
+      <label for="citizen-id">Citizen ID</label>
+      <input id="citizen-id" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 9744640" />
+      <label for="nickname">Nickname (optional)</label>
+      <input id="nickname" type="text" autocomplete="off" maxlength="64" placeholder="e.g. Vince" />
+      <div class="error hidden" id="form-error"></div>
+    </div>
+
+    <script type="module">
+      const tg = window.Telegram.WebApp;
+      tg.ready();
+      tg.expand();
+
+      const $ = (id) => document.getElementById(id);
+      const statusEl = $('status');
+      const listScreen = $('list-screen');
+      const formScreen = $('form-screen');
+      const listEl = $('victim-list');
+      const emptyEl = $('empty');
+      const citizenInput = $('citizen-id');
+      const nickInput = $('nickname');
+      const formError = $('form-error');
+
+      const state = { view: 'list', victims: [] };
+
+      async function api(method, path, body) {
+        const res = await fetch(path, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Telegram-Init-Data': tg.initData ?? '',
+          },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        if (res.status === 204) return null;
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const err = new Error(json?.error?.message ?? `HTTP ${res.status}`);
+          err.code = json?.error?.code;
+          err.status = res.status;
+          err.details = json?.error?.details;
+          throw err;
+        }
+        return json;
+      }
+
+      function renderList() {
+        listEl.innerHTML = '';
+        if (state.victims.length === 0) {
+          emptyEl.classList.remove('hidden');
+        } else {
+          emptyEl.classList.add('hidden');
+          for (const v of state.victims) {
+            const el = document.createElement('div');
+            el.className = 'victim';
+            const sub = v.nickname ? `${v.nickname} · citizen ${v.citizenId}` : `citizen ${v.citizenId}`;
+            el.innerHTML = `
+              <img alt="" src="${v.avatarUrl ?? ''}" onerror="this.style.visibility='hidden'" />
+              <div class="meta">
+                <div class="name"></div>
+                <div class="sub"></div>
+              </div>
+              <button class="remove" title="Remove">✕</button>
+            `;
+            el.querySelector('.name').textContent = v.citizenName + (v.citizenCountry ? ` · ${v.citizenCountry}` : '');
+            el.querySelector('.sub').textContent = sub;
+            el.querySelector('.remove').addEventListener('click', () => removeVictim(v));
+            listEl.appendChild(el);
+          }
+        }
+      }
+
+      // Track the currently-bound MainButton handler so we can detach it before re-binding.
+      let mainBtnHandler = null;
+      function setMainButton(text, handler) {
+        if (mainBtnHandler) tg.MainButton.offClick(mainBtnHandler);
+        mainBtnHandler = handler;
+        tg.MainButton.setText(text);
+        tg.MainButton.onClick(handler);
+        tg.MainButton.show();
+      }
+
+      let backBtnHandler = null;
+      function setBackButton(handler) {
+        if (backBtnHandler) tg.BackButton.offClick(backBtnHandler);
+        backBtnHandler = handler;
+        if (handler) {
+          tg.BackButton.onClick(handler);
+          tg.BackButton.show();
+        } else {
+          tg.BackButton.hide();
+        }
+      }
+
+      function showList() {
+        state.view = 'list';
+        listScreen.classList.remove('hidden');
+        formScreen.classList.add('hidden');
+        setMainButton('+ Add target', showForm);
+        setBackButton(null);
+      }
+
+      function showForm() {
+        state.view = 'form';
+        listScreen.classList.add('hidden');
+        formScreen.classList.remove('hidden');
+        formError.classList.add('hidden');
+        citizenInput.value = '';
+        nickInput.value = '';
+        setMainButton('Save', submitForm);
+        setBackButton(showList);
+        citizenInput.focus();
+      }
+
+      async function submitForm() {
+        const citizenId = citizenInput.value.trim();
+        const nickname = nickInput.value.trim() || null;
+        if (!/^[0-9]+$/.test(citizenId)) {
+          formError.textContent = 'Citizen ID must be a number.';
+          formError.classList.remove('hidden');
+          return;
+        }
+        tg.MainButton.showProgress();
+        try {
+          const created = await api('POST', '/api/victims', { citizenId, nickname });
+          state.victims = [...state.victims, created];
+          tg.HapticFeedback.notificationOccurred('success');
+          showList();
+          renderList();
+        } catch (err) {
+          tg.HapticFeedback.notificationOccurred('error');
+          if (err.code === 'citizen_not_found') {
+            formError.textContent = 'No such citizen on eRepublik.';
+          } else if (err.code === 'already_added') {
+            formError.textContent = 'You already have this citizen on your list.';
+          } else if (err.code === 'validation_failed') {
+            formError.textContent = err.message;
+          } else {
+            formError.textContent = 'Could not save. Try again.';
+          }
+          formError.classList.remove('hidden');
+        } finally {
+          tg.MainButton.hideProgress();
+        }
+      }
+
+      async function removeVictim(v) {
+        const ok = await new Promise((resolve) => tg.showConfirm(`Remove ${v.citizenName}?`, resolve));
+        if (!ok) return;
+        try {
+          await api('DELETE', `/api/victims/${v.citizenId}`);
+          state.victims = state.victims.filter((x) => x.citizenId !== v.citizenId);
+          tg.HapticFeedback.notificationOccurred('success');
+          renderList();
+        } catch (err) {
+          tg.HapticFeedback.notificationOccurred('error');
+          tg.showAlert(err.message);
+        }
+      }
+
+      function renderStatusBanner(code, details) {
+        const banner = document.createElement('div');
+        banner.className = 'banner error';
+        if (code === 'not_active' && details?.status === 'pending') {
+          banner.textContent = '⏳ Waiting for owner approval. The owner will get a request to approve you.';
+        } else if (code === 'not_active' && details?.status === 'revoked') {
+          banner.textContent = '🚫 Your access has been revoked. Contact the owner.';
+        } else if (code === 'not_active' && details?.status === 'denied') {
+          banner.textContent = '❌ Your registration was denied.';
+        } else if (code === 'not_active') {
+          banner.textContent = '❓ You are not registered. Open the bot and run /register.';
+        } else if (code === 'invalid_init_data' || code === 'expired_init_data') {
+          banner.textContent = 'Telegram session expired. Close this app and reopen it from the bot.';
+        } else {
+          banner.textContent = 'Could not reach the server. Pull-to-refresh or try later.';
+        }
+        document.body.innerHTML = '';
+        document.body.appendChild(banner);
+      }
+
+      async function init() {
+        try {
+          const me = await api('GET', '/api/me');
+          statusEl.textContent = me.username ? `@${me.username} · active` : 'active';
+          const list = await api('GET', '/api/victims');
+          state.victims = list.victims;
+          renderList();
+          showList();
+        } catch (err) {
+          renderStatusBanner(err.code, err.details);
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>

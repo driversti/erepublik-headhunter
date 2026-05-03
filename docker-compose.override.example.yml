@@ -1,0 +1,28 @@
+# Optional: VPN sidecar via gluetun. Copy to docker-compose.override.yml and
+# fill in your VPN provider credentials, then `docker compose up -d` will
+# route the bot's egress through the VPN. See https://github.com/qdm12/gluetun
+# for provider-specific env vars.
+services:
+  gluetun:
+    image: qmcgaw/gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      VPN_SERVICE_PROVIDER: changeme
+      VPN_TYPE: wireguard
+      WIREGUARD_PRIVATE_KEY: changeme
+      WIREGUARD_ADDRESSES: changeme
+      SERVER_COUNTRIES: Netherlands
+    restart: unless-stopped
+
+  bot:
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_started
+      db:
+        condition: service_healthy
+    # When using gluetun, the published port has to move to the gluetun service.
+    ports: !reset []

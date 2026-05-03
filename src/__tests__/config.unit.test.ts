@@ -61,4 +61,54 @@ describe('loadConfig', () => {
     const cfg = loadConfig(fullEnv());
     expect(typeof cfg.ownerTelegramId).toBe('bigint');
   });
+
+  it('applies safe defaults for poll-related env vars when unset', () => {
+    const cfg = loadConfig(fullEnv());
+    expect(cfg.pollCampaignsSec).toBe(60);
+    expect(cfg.pollInwindowSec).toBe(30);
+    expect(cfg.windowSeconds).toBe(300);
+    expect(cfg.probeLeadSec).toBe(300);
+    expect(cfg.candidateMinElapsedSec).toBe(5100);
+  });
+
+  it('parses overridden poll-related env vars', () => {
+    const env = { ...fullEnv(), POLL_CAMPAIGNS_SEC: '15', WINDOW_SECONDS: '600' };
+    const cfg = loadConfig(env);
+    expect(cfg.pollCampaignsSec).toBe(15);
+    expect(cfg.windowSeconds).toBe(600);
+  });
+
+  it('rejects non-numeric POLL_CAMPAIGNS_SEC', () => {
+    const env = { ...fullEnv(), POLL_CAMPAIGNS_SEC: 'abc' };
+    expect(() => loadConfig(env)).toThrow(/POLL_CAMPAIGNS_SEC/);
+  });
+
+  it('applies safe defaults for HTTP env vars when unset', () => {
+    const cfg = loadConfig(fullEnv());
+    expect(cfg.httpPort).toBe(3000);
+    expect(cfg.miniappInitDataTtlSec).toBe(86400);
+  });
+
+  it('parses overridden HTTP env vars', () => {
+    const env = { ...fullEnv(), HTTP_PORT: '8080', MINIAPP_INITDATA_TTL_SEC: '3600' };
+    const cfg = loadConfig(env);
+    expect(cfg.httpPort).toBe(8080);
+    expect(cfg.miniappInitDataTtlSec).toBe(3600);
+  });
+
+  it('defaults LOG_LEVEL to info and LOG_PRETTY to false', () => {
+    const cfg = loadConfig(fullEnv());
+    expect(cfg.logLevel).toBe('info');
+    expect(cfg.logPretty).toBe(false);
+  });
+
+  it('parses overridden LOG_LEVEL and LOG_PRETTY=true', () => {
+    const cfg = loadConfig({ ...fullEnv(), LOG_LEVEL: 'debug', LOG_PRETTY: 'true' });
+    expect(cfg.logLevel).toBe('debug');
+    expect(cfg.logPretty).toBe(true);
+  });
+
+  it('rejects an unknown LOG_LEVEL', () => {
+    expect(() => loadConfig({ ...fullEnv(), LOG_LEVEL: 'nope' })).toThrow();
+  });
 });
