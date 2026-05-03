@@ -5,6 +5,8 @@ export interface ShutdownDeps {
   engine: { stop: () => void };
   http: { close: () => Promise<void> };
   pool: { end: () => Promise<void> };
+  /** Optional — only set if keep-alive was started. */
+  keepAlive?: { stop: () => void };
   logger?: Logger;
 }
 
@@ -23,6 +25,9 @@ export async function gracefulShutdown(deps: ShutdownDeps): Promise<void> {
 
   await safeAsync('shutdown.bot.stop', () => deps.bot.stop(), log);
   await safeSync('shutdown.engine.stop', () => deps.engine.stop(), log);
+  if (deps.keepAlive) {
+    await safeSync('shutdown.keep_alive.stop', () => deps.keepAlive!.stop(), log);
+  }
   await safeAsync('shutdown.http.close', () => deps.http.close(), log);
   await safeAsync('shutdown.pool.end', () => deps.pool.end(), log);
 

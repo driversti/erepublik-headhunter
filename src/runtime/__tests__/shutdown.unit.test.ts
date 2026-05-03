@@ -41,4 +41,20 @@ describe('gracefulShutdown', () => {
     expect(deps.bot.stop).toHaveBeenCalledTimes(1);
     expect(deps.pool.end).toHaveBeenCalledTimes(1);
   });
+
+  it('stops keepAlive between engine.stop and http.close when provided', async () => {
+    const { calls, deps } = buildDeps();
+    const keepAlive = {
+      stop: vi.fn().mockImplementation(() => void calls.push('keepAlive.stop')),
+    };
+    await gracefulShutdown({ ...deps, keepAlive });
+    expect(keepAlive.stop).toHaveBeenCalledTimes(1);
+    expect(calls).toEqual([
+      'bot.stop',
+      'engine.stop',
+      'keepAlive.stop',
+      'http.close',
+      'pool.end',
+    ]);
+  });
 });

@@ -27,6 +27,8 @@ const Schema = z.object({
   WINDOW_SECONDS: numericString('WINDOW_SECONDS', '300'),
   PROBE_LEAD_SEC: numericString('PROBE_LEAD_SEC', '300'),
   CANDIDATE_MIN_ELAPSED_SEC: numericString('CANDIDATE_MIN_ELAPSED_SEC', '5100'),
+  KEEP_ALIVE_INTERVAL_MS: numericString('KEEP_ALIVE_INTERVAL_MS', '600000'),
+  KEEP_ALIVE_ENABLED: z.enum(['true', 'false']).default('true'),
   HTTP_PORT: numericString('HTTP_PORT', '3000'),
   MINIAPP_INITDATA_TTL_SEC: numericString('MINIAPP_INITDATA_TTL_SEC', '86400'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info'),
@@ -45,6 +47,8 @@ export interface Config {
   windowSeconds: number;
   probeLeadSec: number;
   candidateMinElapsedSec: number;
+  keepAliveIntervalMs: number;
+  keepAliveEnabled: boolean;
   httpPort: number;
   miniappInitDataTtlSec: number;
   logLevel: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'silent';
@@ -65,6 +69,8 @@ export function loadConfig(source: Record<string, string | undefined> = process.
     windowSeconds: Number(parsed.WINDOW_SECONDS),
     probeLeadSec: Number(parsed.PROBE_LEAD_SEC),
     candidateMinElapsedSec: Number(parsed.CANDIDATE_MIN_ELAPSED_SEC),
+    keepAliveIntervalMs: Number(parsed.KEEP_ALIVE_INTERVAL_MS),
+    keepAliveEnabled: parsed.KEEP_ALIVE_ENABLED === 'true',
     httpPort: Number(parsed.HTTP_PORT),
     miniappInitDataTtlSec: Number(parsed.MINIAPP_INITDATA_TTL_SEC),
     logLevel: parsed.LOG_LEVEL,

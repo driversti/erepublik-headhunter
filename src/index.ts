@@ -17,6 +17,7 @@ import { createHttpServer } from './http/index.js';
 import { OwnerPager } from './runtime/owner-pager.js';
 import { wrapClientForPager } from './runtime/wrap-client.js';
 import { gracefulShutdown } from './runtime/shutdown.js';
+import { KeepAlive } from './runtime/keep-alive.js';
 
 async function main(): Promise<void> {
   const cfg = loadConfig();
@@ -105,6 +106,18 @@ async function main(): Promise<void> {
   await http.listen(cfg.httpPort);
   engine.start();
 
+  // Session keep-alive — pokes AuthManager every N min so cookies stay warm
+  // even when no battle traffic is hitting auth'd endpoints. See SPEC §5.5.
+  const keepAlive = cfg.keepAliveEnabled
+    ? new KeepAlive({ auth, intervalMs: cfg.keepAliveIntervalMs, logger })
+    : null;
+  if (keepAlive) {
+    keepAlive.start();
+    logger.info('auth.keep_alive.started', { intervalMs: cfg.keepAliveIntervalMs });
+  } else {
+    logger.info('auth.keep_alive.disabled');
+  }
+
   // Persistent chat menu button (bottom-left of the Telegram input field) opens
   // the Mini App. Set as the global default so every chat with the bot sees it.
   // Failure is non-fatal — Telegram briefly unavailable shouldn't block boot.
@@ -134,6 +147,7 @@ async function main(): Promise<void> {
       engine,
       http,
       pool: { end: () => pool.end() },
+      ...(keepAlive && { keepAlive }),
       logger,
     });
     process.exit(0);
