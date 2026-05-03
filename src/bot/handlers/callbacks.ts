@@ -1,11 +1,16 @@
 import { Composer } from 'grammy';
 import type { HunterService } from '../../services/hunters.js';
+import type { VictimService } from '../../services/victims.js';
 import { ownerOnly } from '../middleware/owner.js';
 import { parseCallbackData } from '../keyboards.js';
+import { renderHunterVictimsBody } from './owner.js';
 
 export interface CallbacksDeps {
   ownerTelegramId: bigint;
   hunters: HunterService;
+  /** Optional — only used by the hvictims:* callback. The approve/deny/revoke
+   *  flows don't need it; tests for those omit this dep. */
+  victims?: Pick<VictimService, 'list'>;
 }
 
 /**
@@ -17,6 +22,9 @@ export interface CallbackCtx {
   callbackQuery?: { data?: string };
   answerCallbackQuery: (opts: { text: string; show_alert?: boolean }) => Promise<unknown>;
   editMessageReplyMarkup: (opts: { reply_markup: undefined }) => Promise<unknown>;
+  /** Replaces the source message (used by hvictims to swap the picker for
+   *  the resulting list). Optional — approve/deny/revoke don't need it. */
+  editMessageText?: (text: string, opts?: object) => Promise<unknown>;
   api: { sendMessage: (chatId: number, text: string) => Promise<unknown> };
 }
 
@@ -38,6 +46,35 @@ export async function handleRevoke(ctx: CallbackCtx, deps: CallbacksDeps): Promi
 
 export async function handleUnrevoke(ctx: CallbackCtx, deps: CallbacksDeps): Promise<void> {
   await handleTransition(ctx, deps, 'unrevoke', 'Your access has been restored.');
+}
+
+/** Owner picked a hunter from the /hvictims keyboard — replace the picker
+ *  message with the rendered victim list. */
+export async function handleHvictimsPick(ctx: CallbackCtx, deps: CallbacksDeps): Promise<void> {
+  const data = ctx.callbackQuery?.data ?? '';
+  const targetId = parseCallbackData(data, 'hvictims');
+  if (targetId === null) {
+    await ctx.answerCallbackQuery({ text: 'Bad payload', show_alert: false });
+    return;
+  }
+  const hunter = await deps.hunters.findByTelegramId(targetId);
+  if (!hunter) {
+    await ctx.answerCallbackQuery({ text: 'No such hunter', show_alert: true });
+    return;
+  }
+  if (!deps.victims) {
+    await ctx.answerCallbackQuery({ text: 'Victim service unavailable', show_alert: true });
+    return;
+  }
+  const victims = await deps.victims.list(targetId);
+  await ctx.answerCallbackQuery({ text: '' });
+  const body = renderHunterVictimsBody(hunter, victims);
+  if (ctx.editMessageText) {
+    await ctx.editMessageText(body, {
+      parse_mode: 'HTML',
+      link_preview_options: { is_disabled: true },
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -126,6 +163,10 @@ export function callbackHandlers(deps: CallbacksDeps): Composer<never> {
 
   c.callbackQuery(/^unrevoke:[0-9]+$/, gate, async (ctx) => {
     await handleUnrevoke(ctx as unknown as CallbackCtx, deps);
+  });
+
+  c.callbackQuery(/^hvictims:[0-9]+$/, gate, async (ctx) => {
+    await handleHvictimsPick(ctx as unknown as CallbackCtx, deps);
   });
 
   return c;

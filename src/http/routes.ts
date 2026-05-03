@@ -2,10 +2,15 @@ import { Router } from 'express';
 import { z } from 'zod';
 import type { VictimRow } from '../db/types.js';
 import type { VictimService, AddVictimResult } from '../services/victims.js';
+import type { HunterService } from '../services/hunters.js';
 import { sendError } from './errors.js';
 
 export interface ApiRouterDeps {
-  victims: Pick<VictimService, 'list' | 'add' | 'remove'>;
+  victims: Pick<VictimService, 'list' | 'add' | 'remove' | 'listAll'>;
+  /** Used by the owner-only /api/admin/* routes for hunter lookup. */
+  hunters: Pick<HunterService, 'listAll' | 'findByTelegramId'>;
+  /** Owner's Telegram id. The /api/admin/* routes 403 anyone else. */
+  ownerTelegramId: bigint;
 }
 
 const PostVictimSchema = z.object({
@@ -24,6 +29,7 @@ export function createApiRouter(deps: ApiRouterDeps): Router {
       telegramId: h.telegram_id,
       username: h.username,
       status: h.status,
+      isOwner: BigInt(h.telegram_id) === deps.ownerTelegramId,
     });
   });
 
@@ -54,6 +60,63 @@ export function createApiRouter(deps: ApiRouterDeps): Router {
     }
     // already_added
     sendError(res, 409, 'already_added', 'You already have this citizen on your list');
+  });
+
+  // -----------------------------------------------------------------------
+  // Owner-only admin views: list hunters, drill into one hunter's victims.
+  // The Mini App calls these to render the admin tab. Non-owners get 403.
+  // -----------------------------------------------------------------------
+
+  function requireOwner(req: import('express').Request, res: import('express').Response): boolean {
+    if (BigInt(req.hunter!.telegram_id) !== deps.ownerTelegramId) {
+      sendError(res, 403, 'forbidden', 'Owner only');
+      return false;
+    }
+    return true;
+  }
+
+  router.get('/admin/hunters', async (req, res) => {
+    if (!requireOwner(req, res)) return;
+    const [hunters, allVictims] = await Promise.all([
+      deps.hunters.listAll(),
+      deps.victims.listAll(),
+    ]);
+    const counts = new Map<string, number>();
+    for (const v of allVictims) {
+      counts.set(v.hunter_telegram_id, (counts.get(v.hunter_telegram_id) ?? 0) + 1);
+    }
+    res.status(200).json({
+      hunters: hunters.map((h) => ({
+        telegramId: h.telegram_id,
+        username: h.username,
+        status: h.status,
+        victimCount: counts.get(h.telegram_id) ?? 0,
+      })),
+    });
+  });
+
+  router.get('/admin/hunters/:telegramId/victims', async (req, res) => {
+    if (!requireOwner(req, res)) return;
+    const idStr = req.params['telegramId'] ?? '';
+    if (!/^[0-9]+$/.test(idStr)) {
+      sendError(res, 400, 'validation_failed', 'telegramId must be numeric');
+      return;
+    }
+    const targetId = BigInt(idStr);
+    const hunter = await deps.hunters.findByTelegramId(targetId);
+    if (!hunter) {
+      sendError(res, 404, 'not_found', 'No such hunter');
+      return;
+    }
+    const rows = await deps.victims.list(targetId);
+    res.status(200).json({
+      hunter: {
+        telegramId: hunter.telegram_id,
+        username: hunter.username,
+        status: hunter.status,
+      },
+      victims: rows.map(serialiseVictim),
+    });
   });
 
   router.delete('/victims/:citizenId', async (req, res) => {

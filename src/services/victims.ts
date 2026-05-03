@@ -82,6 +82,11 @@ export class VictimService {
   list(hunterTelegramId: bigint): Promise<VictimRow[]> {
     return this.deps.victims.listForHunter(hunterTelegramId);
   }
+
+  /** Owner-only view: every victim across every hunter. */
+  listAll(): Promise<VictimRow[]> {
+    return this.deps.victims.listAll();
+  }
 }
 
 function isUniqueViolation(err: unknown): boolean {

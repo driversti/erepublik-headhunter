@@ -4,7 +4,9 @@ import {
   handleDeny,
   handleRevoke,
   handleUnrevoke,
+  handleHvictimsPick,
 } from '../handlers/callbacks.js';
+import type { VictimService } from '../../services/victims.js';
 import type { CallbackCtx, CallbacksDeps } from '../handlers/callbacks.js';
 import type { HunterService } from '../../services/hunters.js';
 
@@ -53,6 +55,7 @@ function buildCallbackCtx(data: string, fromId: number = Number(OWNER_ID)): Call
     callbackQuery: { data },
     answerCallbackQuery: vi.fn().mockResolvedValue(undefined),
     editMessageReplyMarkup: vi.fn().mockResolvedValue(undefined),
+    editMessageText: vi.fn().mockResolvedValue(undefined),
     api: { sendMessage: vi.fn().mockResolvedValue({ message_id: 1 }) },
   };
 }
@@ -144,6 +147,50 @@ describe('handleApprove — unknown hunter', () => {
       show_alert: false,
     });
     expect(ctx.api.sendMessage).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// /hvictims:<id> picker — owner taps a hunter row to drill into their victims
+// ---------------------------------------------------------------------------
+
+describe('handleHvictimsPick', () => {
+  function makeVictims(rows: Array<{ citizen_id: string; citizen_name: string; nickname: string | null }> = []): VictimService {
+    return { list: vi.fn().mockResolvedValue(rows) } as unknown as VictimService;
+  }
+
+  it('replaces the picker with the rendered victim list', async () => {
+    const ctx = buildCallbackCtx(`hvictims:${TARGET_ID}`);
+    const deps: CallbacksDeps = {
+      ownerTelegramId: OWNER_ID,
+      hunters: makeHunters({ findByTelegramId: vi.fn().mockResolvedValue(FAKE_ROW) }),
+      victims: makeVictims([
+        { citizen_id: '500', citizen_name: 'Bob', nickname: null },
+      ]),
+    };
+    await handleHvictimsPick(ctx, deps);
+    expect(deps.hunters.findByTelegramId).toHaveBeenCalledWith(TARGET_ID);
+    expect(deps.victims!.list).toHaveBeenCalledWith(TARGET_ID);
+    expect(ctx.answerCallbackQuery).toHaveBeenCalledWith({ text: '' });
+    const [text, opts] = (ctx.editMessageText as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    expect(text).toContain('@alice');
+    expect(text).toContain('<a href="https://www.erepublik.com/en/citizen/profile/500">Bob</a>');
+    expect((opts as { link_preview_options?: unknown }).link_preview_options).toEqual({ is_disabled: true });
+  });
+
+  it('answers with "No such hunter" when the id is unknown', async () => {
+    const ctx = buildCallbackCtx(`hvictims:${TARGET_ID}`);
+    const deps: CallbacksDeps = {
+      ownerTelegramId: OWNER_ID,
+      hunters: makeHunters(),  // findByTelegramId returns null
+      victims: makeVictims(),
+    };
+    await handleHvictimsPick(ctx, deps);
+    expect(ctx.answerCallbackQuery).toHaveBeenCalledWith({
+      text: 'No such hunter',
+      show_alert: true,
+    });
+    expect(ctx.editMessageText).not.toHaveBeenCalled();
   });
 });
 
