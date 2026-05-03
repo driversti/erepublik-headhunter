@@ -1,163 +1,247 @@
-# Headhunter
+# 🎯 Headhunter
 
-eRepublik air-round monitoring bot. See [`SPEC.md`](./SPEC.md) for the full
-product specification.
+Self-hosted Telegram bot that pings you when specific eRepublik citizens
+enter the final minutes of an air-division round. Built so you can deploy at
+the exact moment the round closes — steal the Sky Hero medal, burn a target's
+energy/weapons, or just keep an eye on a rival.
 
-This README covers only the bits that exist in code today: the `src/erep/`
-authentication + HTTP client module.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Node ≥20.6](https://img.shields.io/badge/node-%E2%89%A520.6-brightgreen)](#requirements)
+[![tests](https://img.shields.io/badge/tests-300%2B-blue)](#development)
 
-## Status
+There's a public live instance at
+**[@erepublik_headhunter_bot](https://t.me/erepublik_headhunter_bot)** if
+you'd rather use mine than self-host. Send `/register` and wait for owner
+approval. Self-hosting gives you full control (and your own bot account).
 
-- [x] HTTP-only login (no Playwright) — `AuthManager`
-- [x] Cookie-based session persistence — `FileSessionStore` / `MemorySessionStore`
-- [x] Single-flight lock + 1/5/15-min backoff after consecutive failures
-- [x] Auto-retry on 401/403/redirect-to-login — `ErepClient.get`/`post`
-- [x] Typed `whoAmI()` snapshot — `PlayerInfo`
-- [x] Manual cookie injection — `setCookiesManually` (powers SPEC §4.5 `/setcookie`)
-- [x] Error taxonomy: `BadCredentialsError` / `CaptchaGateError` / `CloudflareChallengeError` / `LoginLockedOutError` / `AuthRequiredError`
-- [x] Postgres persistence — migrations + repos for hunters/victims/audit/alerted_rounds
-- [x] `PostgresSessionStore` — drop-in for `FileSessionStore`
-- [ ] grammY bot, polling engine, Mini App, Docker — see SPEC §15
+---
 
-## Setup
+## What it does
+
+1. **You add targets** — Telegram citizen IDs you want to be notified about.
+2. **The bot polls eRepublik's campaigns feed** every minute, narrowing to
+   air-division rounds that are at least 85 minutes into their 120-minute
+   clock (the "T85+" window where the medal becomes contestable).
+3. **For each candidate round**, an authenticated battle-stats call projects
+   when the round will *actually* end (T85 alone is not enough — domination
+   percentages drift the ETA constantly).
+4. **When the projected end is ≤ 5 minutes away**, the bot checks who's
+   fighting in that round. If any of your targets shows up, you get a
+   Telegram alert with the battlefield link, region, and per-target
+   influence/air-rank.
+5. **Manage targets** via `/list`, `/add`, `/remove`, or the in-chat Mini App.
+
+Access is gated by the bot owner — randoms can `/register` but can't add
+targets until the owner approves them. Owner has cross-hunter visibility
+(`/users`, `/allvictims`, `/hvictims`, plus the admin tab in the Mini App).
+
+---
+
+## Quick start (Docker)
+
+Requires Docker + Docker Compose.
+
+```bash
+git clone https://github.com/driversti/erepublik-headhunter.git
+cd erepublik-headhunter
+cp .env.example .env
+# Edit .env — at minimum set EREP_EMAIL, EREP_PASSWORD, BOT_TOKEN,
+# OWNER_TELEGRAM_ID, MINIAPP_URL, DB_PASSWORD.
+docker compose up -d --build
+```
+
+That's the whole story. Migrations run on first boot, the bot connects to
+Telegram and eRepublik, polling starts. Verify:
+
+```bash
+curl http://localhost:3000/healthz   # → {"ok":true}
+docker compose logs -f bot
+```
+
+In Telegram, message your bot, send `/register`. As owner you'll receive
+your own request as an inline DM with Approve/Deny buttons — tap **Approve**.
+After that you can `/add <citizen_id>` and the polling engine will start
+matching against your list.
+
+### Required environment variables
+
+| Variable | What it is | Where to get it |
+|---|---|---|
+| `EREP_EMAIL` | eRepublik account the bot logs into | Use a dedicated account, not your active one |
+| `EREP_PASSWORD` | Password for that account | — |
+| `BOT_TOKEN` | Telegram bot token | [@BotFather](https://t.me/BotFather) → `/newbot` |
+| `OWNER_TELEGRAM_ID` | Numeric Telegram user id of the bot owner | [@userinfobot](https://t.me/userinfobot) sends it back |
+| `MINIAPP_URL` | Public `https://...` URL serving the Mini App | See [Mini App + reverse proxy](#mini-app--reverse-proxy) |
+| `DB_PASSWORD` | Postgres password (used by docker-compose) | Pick one |
+
+Full list with optional tuning knobs in [`.env.example`](./.env.example).
+
+---
+
+## Telegram setup walkthrough
+
+1. **Create the bot.** Open [@BotFather](https://t.me/BotFather), `/newbot`,
+   give it a display name and a username ending in `_bot` or `bot`. Copy the
+   token into `BOT_TOKEN`.
+2. **Get your user id.** Open [@userinfobot](https://t.me/userinfobot), it
+   replies with your numeric id. Put that in `OWNER_TELEGRAM_ID`.
+3. **(Optional) Bot description / commands.** In BotFather, `/setdescription`
+   and `/setcommands` for `start`, `help`, `register`, `add`, `remove`, `list`.
+   Owner-only commands (`pending`, `users`, `allvictims`, `hvictims`,
+   `revoke`, etc.) deliberately aren't advertised.
+
+The bot sets its own persistent menu button on boot (the **🎯 Open** button
+that appears next to the input field), pointed at `MINIAPP_URL`. No BotFather
+configuration needed for that.
+
+---
+
+## Mini App + reverse proxy
+
+Telegram requires `MINIAPP_URL` to be **publicly resolvable over HTTPS** —
+even on dev machines. Three common ways to satisfy this:
+
+- **Production / VPS.** Put a reverse proxy (Caddy, nginx, Traefik) in front
+  of the container and terminate TLS there. Caddy in two lines:
+
+  ```caddyfile
+  headhunter.example.com {
+      reverse_proxy localhost:3000
+  }
+  ```
+
+- **Behind a home network.** Use [Cloudflare Tunnel](https://www.cloudflare.com/products/tunnel/)
+  or [Tailscale Funnel](https://tailscale.com/kb/1223/funnel/) to expose the
+  port without opening a hole in your firewall.
+
+- **Local development.** [`ngrok`](https://ngrok.com/) or
+  [`cloudflared tunnel`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
+  give you an `https://...trycloudflare.com` URL pointing at `localhost:3000`.
+  Paste that into `MINIAPP_URL` for the session.
+
+The Mini App is served at `/` *and* `/miniapp` (Telegram opens whatever URL
+you set, with no path), so any of those proxies works without rewrite rules.
+
+If you don't care about the Mini App for now, set
+`MINIAPP_URL=https://example.com` and ignore it — the bot still works through
+chat commands. The menu button just opens an empty page.
+
+---
+
+## Optional: VPN sidecar (gluetun)
+
+eRepublik occasionally Cloudflare-challenges or rate-limits hot residential
+IPs. Routing the bot through a VPN with stable European exit nodes side-steps
+that. The repo ships a [`docker-compose.override.example.yml`](./docker-compose.override.example.yml)
+with a `gluetun` sidecar:
+
+```bash
+cp docker-compose.override.example.yml docker-compose.override.yml
+# Fill in OPENVPN_USER / OPENVPN_PASSWORD / SERVER_COUNTRIES in .env
+docker compose up -d
+```
+
+Tested with Surfshark (OpenVPN). For other providers see the
+[gluetun docs](https://github.com/qdm12/gluetun-wiki).
+
+---
+
+## Architecture (one screen)
+
+```
+┌──────────────┐     ┌─────────────────────┐     ┌──────────┐
+│ Telegram     │◄───►│ grammY bot          │     │          │
+│ (owner +     │     │ + Mini App + REST   │◄───►│ Postgres │
+│  hunters)    │     │ + initData HMAC     │     │          │
+└──────────────┘     └──────────┬──────────┘     └──────────┘
+                                │                     ▲
+                                ▼                     │
+                       ┌──────────────────┐           │
+                       │ Polling engine   │───────────┘
+                       │ scan ──► probe   │
+                       │      └─► monitor │
+                       └────────┬─────────┘
+                                │ HTTP (auth + cookies)
+                                ▼
+                       ┌──────────────────┐
+                       │ eRepublik        │
+                       └──────────────────┘
+```
+
+The polling engine is three layers, scheduled by a min-heap:
+
+- **scan** — every 60 s, fetches the public campaigns feed, picks
+  battles entering the T85+ window.
+- **probe** — for each candidate, hits `military/battle-stats` to compute an
+  ETA based on current domination + accumulated round-points.
+- **monitor** — once ETA ≤ 5 min, polls every 30 s; emits alerts the moment
+  any registered victim appears in the round's top-damage list.
+
+Full details (math, hysteresis, dedup) in [`SPEC.md`](./SPEC.md).
+
+---
+
+## Development
 
 ```bash
 npm install
-cp .env.example .env
-# fill in EREP_EMAIL and EREP_PASSWORD in .env
+npm run typecheck
+npm test                  # ~300 unit tests, no network, no Postgres
+npm run test:db           # DB-touching tests, needs Docker (Testcontainers)
+npm run test:integration  # Real eRepublik HTTP — needs creds in .env
+npm run build             # tsc → dist/
+npm run start             # node dist/index.js (expects .env)
 ```
 
-Requires Node ≥20.6 (for native `fetch` and `--env-file`).
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for branch + PR conventions.
 
-## Usage
+### Recovery: `/setcookie`
 
-```ts
-import {
-  AuthManager,
-  ErepClient,
-  FileSessionStore,
-} from './src/erep/index.js';
+If eRepublik's HTTP login form stops accepting your password (Cloudflare
+gate, CAPTCHA, account flagged, etc.), the bot can't refresh its session
+automatically. As the owner, send `/setcookie <erpk>` in Telegram with a
+fresh `erpk` cookie copied from a real browser tab. The bot validates it
+against `/en` and persists it; the polling engine resumes within a minute.
 
-const auth = new AuthManager({
-  email: process.env.EREP_EMAIL!,
-  password: process.env.EREP_PASSWORD!,
-  store: new FileSessionStore('./data/session.json'),
-});
-const client = new ErepClient({ auth });
+This is the canonical recovery path — described in
+[`SPEC.md`](./SPEC.md) §4.5.
 
-// Returns a typed snapshot of the bot's own player.
-const me = await client.whoAmI();
-console.log(`Logged in as ${me.name} (level ${me.level}, ${me.energy}/${me.energyMax} energy)`);
+---
 
-// Authenticated calls auto-inject cookies and retry once on 401.
-const res = await client.get('/en/citizen/profile/9744640');
+## Responsible use
 
-// Anonymous calls (campaigns scan).
-const campaigns = await client.getPublic('/en/military/campaignsJson/list');
-```
+Headhunter is a **notification tool**: it tells you when to deploy. It does
+not auto-fight, auto-deploy, or take any in-game action on your behalf. Use
+it within eRepublik's
+[Terms of Service](https://www.erepublik.com/en/main/terms-of-service) and
+your country/community's understanding of fair play.
 
-## Scripts
+You are responsible for:
 
-| Command | What it does |
-|---|---|
-| `npm test` | Unit tests only (no network). Mocks `fetch`. |
-| `npm run test:watch` | Unit tests, watch mode. |
-| `npm run test:integration` | Real-HTTP integration test against eRepublik. Loads creds from `.env`. Skipped if `EREP_EMAIL` is absent. |
-| `npm run demo:login` | Logs in (or reuses cached cookies) and prints a player card. Loads creds from `.env`. |
-| `npm run demo:setcookie` | Injects cookies pulled from a real browser session — the operational fallback when CAPTCHA/Cloudflare blocks HTTP login. See "CAPTCHA gate" below. |
-| `npm run typecheck` | `tsc --noEmit`. |
+- Securing the eRepublik account credentials you give the bot. They live in
+  your `.env` file.
+- Telling people you're hunting that you're hunting them, where social norms
+  in your community require it.
+- Not running multiple accounts through this bot to gain an unfair advantage
+  beyond what a single hunter would have.
 
-## How the auth flow works
+The MIT license disclaims warranty — use at your own risk. If your account
+gets flagged, that's between you and eRepublik.
 
-```
-┌─ getErpk() ──────────────────────────────────────────────┐
-│                                                          │
-│  cached & valid?  ── yes ─────────► return cached erpk   │
-│         │                                                │
-│         no                                               │
-│         ▼                                                │
-│  login in flight? ── yes ─────────► await it             │
-│         │                                                │
-│         no                                               │
-│         ▼                                                │
-│  in backoff window? ── yes ───────► throw LoginLockedOut │
-│         │                                                │
-│         no                                               │
-│         ▼                                                │
-│  GET /en/login   → CSRF + initial cookies                │
-│  POST /en/login  → 302 + erpk cookie                     │
-│  GET /en         → validate (no login_form)              │
-│  store.save({cookies, lastValidatedAt})                  │
-│  return erpk                                             │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
-```
+---
 
-Concurrent callers share the same in-flight login (single-flight). After 4
-consecutive failures the manager fires `onLockout(err)` once per streak — the
-hook the future Telegram bot will use to DM the owner.
+## Acknowledgements
 
-When `ErepClient` gets a 401/403/redirect-to-login response, it forces
-`auth.refresh()` and retries the request once. A second auth failure on the
-same request throws `AuthRequiredError` without further retries.
+- [grammY](https://grammy.dev/) for the Telegram framework.
+- [pino](https://getpino.io/) for structured logging.
+- [node-pg-migrate](https://salsita.github.io/node-pg-migrate/) for migrations.
+- [Vitest](https://vitest.dev/) and [Testcontainers](https://node.testcontainers.org/)
+  for the test stack.
+- The eRepublik unofficial-API community for endpoint reverse-engineering
+  notes that informed `src/erep/`.
 
-## Database
+---
 
-Postgres-backed persistence for hunters, victims, audit log, alerted-round
-dedup, and the bot's own session row. Migrations live in `migrations/` and
-run via `node-pg-migrate`.
+## License
 
-```bash
-# Run migrations against $DATABASE_URL
-npm run db:migrate
-
-# Roll back the last migration
-npm run db:migrate:down
-
-# Generate a new migration file
-npm run db:migrate:create -- my_change
-
-# Run integration tests (spins up Postgres via Testcontainers; needs Docker)
-npm run test:db
-```
-
-## CAPTCHA gate
-
-eRepublik shows a CAPTCHA after a few back-to-back logins (we hit it during
-PoC iteration). The mitigation hierarchy:
-
-1. **Session cache (primary).** A valid cached `erpk` skips login entirely —
-   no CAPTCHA opportunity. `FileSessionStore` keeps it in `data/session.json`
-   across runs. The `erpk_rm` (remember-me) cookie extends session lifetime
-   substantially.
-2. **Backoff (defensive).** After a failed login, the manager refuses to
-   retry for 1m → 5m → 15m. This prevents accidental hammering when the
-   cache is stale, which is the exact behaviour that triggers eRepublik's
-   gate in the first place.
-3. **Manual cookie injection (recovery).** When the gate is up, you can
-   bypass HTTP login entirely by pulling cookies from a real browser
-   session and injecting them:
-
-```bash
-# In Chrome with eRepublik open:
-#   DevTools → Application → Cookies → https://www.erepublik.com
-#   Copy the values of `erpk` (and optionally `erpk_rm`, `erpk_mid`)
-
-EREP_EMAIL='you@example.com' \
-EREP_ERPK='paste-it-here' \
-EREP_ERPK_RM='optional-but-helpful' \
-npm run demo:setcookie
-
-# Then your normal flow works without ever calling /en/login:
-npm run demo:login
-```
-
-This is the same code path the future Telegram `/setcookie` owner-only
-command will use — `AuthManager.setCookiesManually()` validates the
-injected cookies against `/en` before persisting, so a typo or stale value
-fails fast.
-
-4. **TLS impersonation (escalation, not yet wired).** If a hosted instance
-   gets challenged before login (Cloudflare, not CAPTCHA), swap the `fetch`
-   option on `AuthManager` for a `cycletls` wrapper. The interface is ready;
-   no implementation change needed beyond passing the option.
+[MIT](./LICENSE) © driversti
