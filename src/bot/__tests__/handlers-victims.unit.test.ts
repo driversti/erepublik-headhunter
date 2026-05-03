@@ -125,6 +125,12 @@ describe('victimHandlers', () => {
     expect(reply).toContain('Bob');
     expect(reply).toContain('"A"');
     expect(reply).toContain('USA');
+    // Names are clickable links to eRepublik profiles, with link previews disabled
+    // so a long list doesn't unfurl every profile inline.
+    expect(reply).toContain('<a href="https://www.erepublik.com/en/citizen/profile/1">Alice</a>');
+    expect(reply).toContain('<a href="https://www.erepublik.com/en/citizen/profile/2">Bob</a>');
+    const opts = ctx.reply.mock.calls[0]![1] as Record<string, unknown>;
+    expect(opts.link_preview_options).toEqual({ is_disabled: true });
   });
 
   it('rejects pending hunters via the activeHunterOnly middleware', async () => {
