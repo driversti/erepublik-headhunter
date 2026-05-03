@@ -3,7 +3,7 @@ import type { HunterService } from '../../services/hunters.js';
 import type { VictimService } from '../../services/victims.js';
 import type { AuditRepo } from '../../db/repos/audit.js';
 import type { AuthManager } from '../../erep/auth.js';
-import { approveDenyKeyboard, revokeKeyboard } from '../keyboards.js';
+import { approveDenyKeyboard, huntersPickerKeyboard, revokeKeyboard } from '../keyboards.js';
 import { ownerOnly } from '../middleware/owner.js';
 import { escapeHtml } from '../../util/escapeHtml.js';
 
@@ -182,10 +182,47 @@ export async function handleAllVictims(ctx: OwnerCtx, deps: OwnerDeps): Promise<
   }
 }
 
+/** Builds the body of an /hvictims drill-down for a given hunter. Used both
+ *  by the command handler (with explicit id arg) and by the inline-button
+ *  callback that picks a hunter from the keyboard. */
+export function renderHunterVictimsBody(
+  hunter: { telegram_id: string; username: string | null },
+  victims: Array<{ citizen_id: string; citizen_name: string; nickname: string | null }>,
+): string {
+  const link = hunterLink(hunter.telegram_id, hunter.username);
+  if (victims.length === 0) {
+    return `${link} (<code>${hunter.telegram_id}</code>) has no victims.`;
+  }
+  const lines = [
+    `Victims of ${link} (<code>${hunter.telegram_id}</code>) — ${victims.length} total:`,
+    ...victims.map((v) => {
+      const tag = v.nickname ? ` "${escapeHtml(v.nickname)}"` : '';
+      return `• ${profileLink(v.citizen_id, v.citizen_name)} (${v.citizen_id})${tag}`;
+    }),
+  ];
+  return lines.join('\n');
+}
+
 export async function handleHvictims(ctx: OwnerCtx, deps: OwnerDeps): Promise<void> {
-  const m = /^([0-9]+)$/.exec((ctx.match ? String(ctx.match) : '').trim());
+  const arg = (ctx.match ? String(ctx.match) : '').trim();
+
+  // No arg → present a hunter picker. Saves the owner from having to memorize
+  // numeric Telegram ids.
+  if (arg === '') {
+    const hunters = await deps.hunters.listAll();
+    if (hunters.length === 0) {
+      await ctx.reply('No hunters yet.');
+      return;
+    }
+    await ctx.reply('Pick a hunter:', {
+      reply_markup: huntersPickerKeyboard(hunters),
+    });
+    return;
+  }
+
+  const m = /^([0-9]+)$/.exec(arg);
   if (!m) {
-    await ctx.reply('Usage: /hvictims <telegram_id>');
+    await ctx.reply('Usage: /hvictims [telegram_id]');
     return;
   }
   const targetId = BigInt(m[1]!);
@@ -194,23 +231,8 @@ export async function handleHvictims(ctx: OwnerCtx, deps: OwnerDeps): Promise<vo
     await ctx.reply('No such hunter.');
     return;
   }
-  const list = await deps.victims.list(targetId);
-  const link = hunterLink(hunter.telegram_id, hunter.username);
-  if (list.length === 0) {
-    await ctx.reply(
-      `${link} (<code>${hunter.telegram_id}</code>) has no victims.`,
-      { parse_mode: 'HTML', link_preview_options: { is_disabled: true } },
-    );
-    return;
-  }
-  const lines = [
-    `Victims of ${link} (<code>${hunter.telegram_id}</code>) — ${list.length} total:`,
-    ...list.map((v) => {
-      const tag = v.nickname ? ` "${escapeHtml(v.nickname)}"` : '';
-      return `• ${profileLink(v.citizen_id, v.citizen_name)} (${v.citizen_id})${tag}`;
-    }),
-  ];
-  await ctx.reply(lines.join('\n'), {
+  const victims = await deps.victims.list(targetId);
+  await ctx.reply(renderHunterVictimsBody(hunter, victims), {
     parse_mode: 'HTML',
     link_preview_options: { is_disabled: true },
   });

@@ -405,12 +405,37 @@ describe('handleAllVictims', () => {
 // ---------------------------------------------------------------------------
 
 describe('handleHvictims', () => {
-  it('replies with usage when no arg given', async () => {
+  it('shows a hunters keyboard picker when no arg given', async () => {
     const ctx = buildCtx({ fromId: Number(OWNER_ID) });
     ctx.match = '';
+    const deps = makeDeps({
+      hunters: {
+        listAll: vi.fn().mockResolvedValue([
+          { telegram_id: '100', username: 'alice', status: 'active', registered_at: new Date(), decided_at: null, decided_by: null },
+          { telegram_id: '200', username: null, status: 'active', registered_at: new Date(), decided_at: null, decided_by: null },
+        ]),
+      },
+    });
+    await handleHvictims(ctx, deps);
+    const [text, opts] = ctx.reply.mock.calls[0]!;
+    expect(text).toBe('Pick a hunter:');
+    expect((opts as { reply_markup?: unknown }).reply_markup).toBeDefined();
+  });
+
+  it('says "No hunters yet." when there are zero hunters and no arg', async () => {
+    const ctx = buildCtx({ fromId: Number(OWNER_ID) });
+    ctx.match = '';
+    const deps = makeDeps({ hunters: { listAll: vi.fn().mockResolvedValue([]) } });
+    await handleHvictims(ctx, deps);
+    expect(ctx.reply).toHaveBeenCalledWith('No hunters yet.');
+  });
+
+  it('replies with usage when arg is non-numeric garbage', async () => {
+    const ctx = buildCtx({ fromId: Number(OWNER_ID) });
+    ctx.match = 'not-a-number';
     const deps = makeDeps();
     await handleHvictims(ctx, deps);
-    expect(ctx.reply).toHaveBeenCalledWith('Usage: /hvictims <telegram_id>');
+    expect(ctx.reply).toHaveBeenCalledWith('Usage: /hvictims [telegram_id]');
   });
 
   it('replies "No such hunter." when the id does not exist', async () => {

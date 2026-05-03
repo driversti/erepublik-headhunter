@@ -10,9 +10,11 @@ import { createMiniappRouter, miniappStaticFile } from './miniapp.js';
 import { sendError } from './errors.js';
 
 export interface HttpServerDeps {
-  hunters: Pick<HunterService, 'findByTelegramId'>;
-  victims: Pick<VictimService, 'list' | 'add' | 'remove'>;
+  hunters: Pick<HunterService, 'findByTelegramId' | 'listAll'>;
+  victims: Pick<VictimService, 'list' | 'add' | 'remove' | 'listAll'>;
   botToken: string;
+  /** Owner's Telegram id — used by /api/admin/* to gate admin views. */
+  ownerTelegramId: bigint;
   /** Telegram initData replay window in seconds. Default 86400 (24h). */
   initDataTtlSec?: number;
   logger?: Logger;
@@ -55,7 +57,15 @@ export function createHttpServer(deps: HttpServerDeps): HttpServer {
     hunters: deps.hunters,
     initDataTtlSec: deps.initDataTtlSec ?? 86400,
   });
-  app.use('/api', auth, createApiRouter({ victims: deps.victims }));
+  app.use(
+    '/api',
+    auth,
+    createApiRouter({
+      victims: deps.victims,
+      hunters: deps.hunters,
+      ownerTelegramId: deps.ownerTelegramId,
+    }),
+  );
 
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     log.error('http.unhandled', { error: err instanceof Error ? err.message : String(err) });

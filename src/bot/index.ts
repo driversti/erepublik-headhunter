@@ -53,7 +53,11 @@ export function createBot(deps: BotDeps): Bot {
   // Order matters: callbacks first, then owner commands, victim commands, start.
   // Each composer's own middleware (ownerOnly, activeHunterOnly) gates traffic.
   // asMiddleware() widens Composer<never> → Middleware<Context> for bot.use().
-  bot.use(asMiddleware(callbackHandlers({ ownerTelegramId: deps.ownerTelegramId, hunters: deps.hunters })));
+  bot.use(asMiddleware(callbackHandlers({
+    ownerTelegramId: deps.ownerTelegramId,
+    hunters: deps.hunters,
+    victims: deps.victims,
+  })));
   bot.use(
     asMiddleware(ownerHandlers({
       ownerTelegramId: deps.ownerTelegramId,

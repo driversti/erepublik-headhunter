@@ -14,6 +14,20 @@ export function revokeKeyboard(targetTelegramId: bigint, isActive: boolean): Inl
     : new InlineKeyboard().text('♻️ Unrevoke', `unrevoke:${targetTelegramId}`);
 }
 
+/** One row per hunter, label = "@username" or numeric id. Callback data:
+ *  "hvictims:<telegram_id>". Used by the no-arg /hvictims flow so the owner
+ *  doesn't need to memorize Telegram ids. */
+export function huntersPickerKeyboard(
+  hunters: Array<{ telegram_id: string; username: string | null }>,
+): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  for (const h of hunters) {
+    const label = h.username ? `@${h.username}` : String(h.telegram_id);
+    kb.text(label, `hvictims:${h.telegram_id}`).row();
+  }
+  return kb;
+}
+
 /** Parses callback data "<action>:<numeric-id>" into the bigint id, or null
  *  if the data doesn't match the expected action prefix. */
 export function parseCallbackData(data: string, action: string): bigint | null {

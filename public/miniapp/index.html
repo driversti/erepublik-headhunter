@@ -51,6 +51,31 @@
         font-size: 22px; cursor: pointer; padding: 4px 8px;
       }
       .empty { text-align: center; color: var(--hint); padding: 40px 16px; }
+      .section-title {
+        font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;
+        color: var(--hint); margin: 8px 4px 8px;
+      }
+      .hunter-row {
+        display: flex; justify-content: space-between; align-items: center;
+        background: var(--section-bg);
+        padding: 12px 14px;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        font-size: 15px;
+      }
+      .hunter-row .label { font-weight: 500; }
+      .hunter-row .meta { color: var(--hint); font-size: 13px; }
+      .hunter-row[data-status="pending"] .label,
+      .hunter-row[data-status="revoked"] .label,
+      .hunter-row[data-status="denied"] .label { opacity: 0.55; }
+      .admin-section { margin-bottom: 24px; }
+      .admin-screen-header {
+        display: flex; flex-direction: column; gap: 4px;
+        margin-bottom: 12px;
+      }
+      .admin-screen-header .who { font-size: 17px; font-weight: 600; }
+      .admin-screen-header .total { color: var(--hint); font-size: 13px; }
       .banner {
         padding: 12px 16px; margin: 16px; border-radius: 8px;
         background: var(--secondary-bg); color: var(--text);
@@ -75,8 +100,22 @@
     </header>
 
     <main id="list-screen">
+      <section class="admin-section hidden" id="admin-hunters">
+        <div class="section-title">👥 Hunters (admin)</div>
+        <div id="hunter-list"></div>
+      </section>
+      <div class="section-title hidden" id="own-victims-title">Your targets</div>
       <div id="victim-list"></div>
       <div class="empty hidden" id="empty">No targets yet. Tap “Add target” below.</div>
+    </main>
+
+    <main class="hidden" id="admin-screen">
+      <div class="admin-screen-header">
+        <div class="who" id="admin-who"></div>
+        <div class="total" id="admin-total"></div>
+      </div>
+      <div id="admin-victim-list"></div>
+      <div class="empty hidden" id="admin-empty">This hunter has no targets.</div>
     </main>
 
     <div class="form-screen hidden" id="form-screen">
@@ -96,13 +135,21 @@
       const statusEl = $('status');
       const listScreen = $('list-screen');
       const formScreen = $('form-screen');
+      const adminScreen = $('admin-screen');
       const listEl = $('victim-list');
       const emptyEl = $('empty');
+      const adminSection = $('admin-hunters');
+      const ownVictimsTitle = $('own-victims-title');
+      const hunterListEl = $('hunter-list');
+      const adminWho = $('admin-who');
+      const adminTotal = $('admin-total');
+      const adminVictimList = $('admin-victim-list');
+      const adminEmpty = $('admin-empty');
       const citizenInput = $('citizen-id');
       const nickInput = $('nickname');
       const formError = $('form-error');
 
-      const state = { view: 'list', victims: [] };
+      const state = { view: 'list', victims: [], isOwner: false };
 
       async function api(method, path, body) {
         const res = await fetch(path, {
@@ -177,8 +224,76 @@
         state.view = 'list';
         listScreen.classList.remove('hidden');
         formScreen.classList.add('hidden');
+        adminScreen.classList.add('hidden');
         setMainButton('+ Add target', showForm);
         setBackButton(null);
+      }
+
+      // eRepublik citizen profile URL — used for read-only admin views.
+      function profileUrl(citizenId) {
+        return `https://www.erepublik.com/en/citizen/profile/${citizenId}`;
+      }
+
+      function renderHunters(hunters) {
+        hunterListEl.innerHTML = '';
+        for (const h of hunters) {
+          const row = document.createElement('div');
+          row.className = 'hunter-row';
+          row.dataset.status = h.status;
+          const label = h.username ? `@${h.username}` : String(h.telegramId);
+          row.innerHTML = `<span class="label"></span><span class="meta"></span>`;
+          row.querySelector('.label').textContent = label;
+          row.querySelector('.meta').textContent =
+            `${h.victimCount} target(s) · ${h.status}`;
+          row.addEventListener('click', () => openHunterDetail(h));
+          hunterListEl.appendChild(row);
+        }
+      }
+
+      async function openHunterDetail(hunter) {
+        try {
+          const data = await api('GET', `/api/admin/hunters/${hunter.telegramId}/victims`);
+          state.view = 'admin-detail';
+          listScreen.classList.add('hidden');
+          formScreen.classList.add('hidden');
+          adminScreen.classList.remove('hidden');
+          const label = data.hunter.username ? `@${data.hunter.username}` : data.hunter.telegramId;
+          adminWho.textContent = `${label} (${data.hunter.telegramId})`;
+          adminTotal.textContent = `${data.victims.length} target(s)`;
+          adminVictimList.innerHTML = '';
+          if (data.victims.length === 0) {
+            adminEmpty.classList.remove('hidden');
+          } else {
+            adminEmpty.classList.add('hidden');
+            for (const v of data.victims) {
+              const el = document.createElement('a');
+              el.className = 'victim';
+              el.href = profileUrl(v.citizenId);
+              el.target = '_blank';
+              el.rel = 'noopener noreferrer';
+              el.style.textDecoration = 'none';
+              el.style.color = 'inherit';
+              const sub = v.nickname ? `${v.nickname} · citizen ${v.citizenId}` : `citizen ${v.citizenId}`;
+              el.innerHTML = `
+                <img alt="" onerror="this.style.visibility='hidden'" />
+                <div class="meta">
+                  <div class="name"></div>
+                  <div class="sub"></div>
+                </div>
+              `;
+              el.querySelector('img').src = v.avatarUrl ?? '';
+              el.querySelector('.name').textContent = v.citizenName + (v.citizenCountry ? ` · ${v.citizenCountry}` : '');
+              el.querySelector('.sub').textContent = sub;
+              adminVictimList.appendChild(el);
+            }
+          }
+          // Hide MainButton (no add/remove for admin views — read-only).
+          tg.MainButton.hide();
+          setBackButton(showList);
+        } catch (err) {
+          tg.HapticFeedback.notificationOccurred('error');
+          tg.showAlert(err.message ?? 'Could not load hunter');
+        }
       }
 
       function showForm() {
@@ -262,10 +377,25 @@
       async function init() {
         try {
           const me = await api('GET', '/api/me');
-          statusEl.textContent = me.username ? `@${me.username} · active` : 'active';
+          state.isOwner = !!me.isOwner;
+          statusEl.textContent = me.username
+            ? `@${me.username} · ${state.isOwner ? 'owner' : 'active'}`
+            : state.isOwner ? 'owner' : 'active';
           const list = await api('GET', '/api/victims');
           state.victims = list.victims;
           renderList();
+          // Owner-only: load hunters for the admin section. Best-effort —
+          // a failure shouldn't block the regular victim list.
+          if (state.isOwner) {
+            try {
+              const huntersResp = await api('GET', '/api/admin/hunters');
+              renderHunters(huntersResp.hunters);
+              adminSection.classList.remove('hidden');
+              ownVictimsTitle.classList.remove('hidden');
+            } catch {
+              // Stay silent; admin section just won't appear.
+            }
+          }
           showList();
         } catch (err) {
           renderStatusBanner(err.code, err.details);

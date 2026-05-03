@@ -96,6 +96,7 @@ async function main(): Promise<void> {
     hunters: hunterService,
     victims: victimService,
     botToken: cfg.botToken,
+    ownerTelegramId: cfg.ownerTelegramId,
     initDataTtlSec: cfg.miniappInitDataTtlSec,
     logger,
   });

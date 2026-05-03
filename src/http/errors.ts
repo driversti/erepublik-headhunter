@@ -8,6 +8,7 @@ export type ErrorCode =
   | 'not_found'
   | 'already_added'
   | 'citizen_not_found'
+  | 'forbidden'
   | 'internal_error';
 
 export interface ErrorEnvelope {

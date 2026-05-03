@@ -44,6 +44,7 @@ const buildSystem = () => {
     hunters: hunterService,
     victims: victimService,
     botToken: BOT_TOKEN,
+    ownerTelegramId: OWNER_ID,
   });
   return { http, hunterRepo, hunterService, getCitizenProfile };
 };
@@ -64,7 +65,9 @@ describe('HTTP integration', () => {
 
     const meRes = await request(http.app).get('/api/me').set('X-Telegram-Init-Data', cookie);
     expect(meRes.status).toBe(200);
-    expect(meRes.body).toEqual({ telegramId: '700', username: 'alice', status: 'active' });
+    expect(meRes.body).toEqual({
+      telegramId: '700', username: 'alice', status: 'active', isOwner: false,
+    });
 
     const empty = await request(http.app).get('/api/victims').set('X-Telegram-Init-Data', cookie);
     expect(empty.status).toBe(200);
