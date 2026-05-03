@@ -52,6 +52,15 @@ export class VictimRepo {
     return rows;
   }
 
+  /** Returns every victim across every hunter, ordered by hunter then add-time.
+   *  Used by the owner-only /allvictims command. */
+  async listAll(): Promise<VictimRow[]> {
+    const { rows } = await this.pool.query<VictimRow>(
+      `SELECT * FROM victims ORDER BY hunter_telegram_id ASC, added_at ASC, id ASC`,
+    );
+    return rows;
+  }
+
   /**
    * Returns the deduplicated set of citizen IDs that ANY hunter has on their
    * list. Used by the polling engine to short-circuit "no victims at all

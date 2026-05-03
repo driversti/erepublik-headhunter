@@ -8,6 +8,8 @@ import {
   handleRevoke,
   handleUnrevoke,
   handleSetcookie,
+  handleAllVictims,
+  handleHvictims,
 } from '../handlers/owner.js';
 import { buildCtx } from './_helpers.js';
 import type { HunterService } from '../../services/hunters.js';
@@ -39,6 +41,7 @@ function makeHunters(overrides: Partial<HunterService> = {}): HunterService {
 function makeVictims(overrides: Partial<VictimService> = {}): VictimService {
   return {
     list: vi.fn().mockResolvedValue([]),
+    listAll: vi.fn().mockResolvedValue([]),
     add: vi.fn(),
     remove: vi.fn(),
     ...overrides,
@@ -327,5 +330,134 @@ describe('handleSetcookie', () => {
     const [text] = ctx.reply.mock.calls[0]!;
     expect(text).toContain('Cookie validation failed:');
     expect(text).toContain('failed to authenticate');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// /allvictims
+// ---------------------------------------------------------------------------
+
+describe('handleAllVictims', () => {
+  it('replies with the empty hint when no victims exist', async () => {
+    const ctx = buildCtx({ fromId: Number(OWNER_ID) });
+    const deps = makeDeps();
+    await handleAllVictims(ctx, deps);
+    expect(ctx.reply).toHaveBeenCalledWith('No victims across any hunter.');
+  });
+
+  it('groups victims by hunter and renders both as clickable links, with previews disabled', async () => {
+    const ctx = buildCtx({ fromId: Number(OWNER_ID) });
+    const deps = makeDeps({
+      hunters: {
+        listAll: vi.fn().mockResolvedValue([
+          { telegram_id: '100', username: 'alice', status: 'active', registered_at: new Date(), decided_at: null, decided_by: null },
+          { telegram_id: '200', username: null, status: 'active', registered_at: new Date(), decided_at: null, decided_by: null },
+        ]),
+      },
+      victims: {
+        listAll: vi.fn().mockResolvedValue([
+          { id: '1', hunter_telegram_id: '100', citizen_id: '500', citizen_name: 'Bob', citizen_country: null, avatar_url: null, nickname: 'pal', added_at: new Date() },
+          { id: '2', hunter_telegram_id: '200', citizen_id: '700', citizen_name: 'Eve', citizen_country: null, avatar_url: null, nickname: null, added_at: new Date() },
+        ]),
+      },
+    });
+    await handleAllVictims(ctx, deps);
+    expect(ctx.reply).toHaveBeenCalledTimes(2);
+
+    const [aliceText, aliceOpts] = ctx.reply.mock.calls[0]!;
+    expect(aliceText).toContain('<a href="tg://user?id=100">@alice</a>');
+    expect(aliceText).toContain('<a href="https://www.erepublik.com/en/citizen/profile/500">Bob</a>');
+    expect(aliceText).toContain('"pal"');
+    expect((aliceOpts as { link_preview_options?: unknown }).link_preview_options).toEqual({ is_disabled: true });
+
+    // Hunter without username: link text falls back to telegram id.
+    const [eveText] = ctx.reply.mock.calls[1]!;
+    expect(eveText).toContain('<a href="tg://user?id=200">200</a>');
+    expect(eveText).toContain('<a href="https://www.erepublik.com/en/citizen/profile/700">Eve</a>');
+  });
+
+  it('skips hunters that have no victims', async () => {
+    const ctx = buildCtx({ fromId: Number(OWNER_ID) });
+    const deps = makeDeps({
+      hunters: {
+        listAll: vi.fn().mockResolvedValue([
+          { telegram_id: '100', username: 'alice', status: 'active', registered_at: new Date(), decided_at: null, decided_by: null },
+          { telegram_id: '200', username: 'bob', status: 'active', registered_at: new Date(), decided_at: null, decided_by: null },
+        ]),
+      },
+      victims: {
+        listAll: vi.fn().mockResolvedValue([
+          { id: '1', hunter_telegram_id: '100', citizen_id: '500', citizen_name: 'Target', citizen_country: null, avatar_url: null, nickname: null, added_at: new Date() },
+        ]),
+      },
+    });
+    await handleAllVictims(ctx, deps);
+    // Only alice — bob has no victims so no message about him.
+    expect(ctx.reply).toHaveBeenCalledTimes(1);
+    const [text] = ctx.reply.mock.calls[0]!;
+    expect(text).toContain('@alice');
+    expect(text).not.toContain('@bob');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// /hvictims
+// ---------------------------------------------------------------------------
+
+describe('handleHvictims', () => {
+  it('replies with usage when no arg given', async () => {
+    const ctx = buildCtx({ fromId: Number(OWNER_ID) });
+    ctx.match = '';
+    const deps = makeDeps();
+    await handleHvictims(ctx, deps);
+    expect(ctx.reply).toHaveBeenCalledWith('Usage: /hvictims <telegram_id>');
+  });
+
+  it('replies "No such hunter." when the id does not exist', async () => {
+    const ctx = buildCtx({ fromId: Number(OWNER_ID) });
+    ctx.match = '999';
+    const deps = makeDeps({ hunters: { findByTelegramId: vi.fn().mockResolvedValue(null) } });
+    await handleHvictims(ctx, deps);
+    expect(ctx.reply).toHaveBeenCalledWith('No such hunter.');
+  });
+
+  it('lists the hunter and their victims as clickable links, no preview', async () => {
+    const ctx = buildCtx({ fromId: Number(OWNER_ID) });
+    ctx.match = '100';
+    const deps = makeDeps({
+      hunters: {
+        findByTelegramId: vi.fn().mockResolvedValue({
+          telegram_id: '100', username: 'alice', status: 'active', registered_at: new Date(), decided_at: null, decided_by: null,
+        }),
+      },
+      victims: {
+        list: vi.fn().mockResolvedValue([
+          { id: '1', hunter_telegram_id: '100', citizen_id: '500', citizen_name: 'Bob', citizen_country: null, avatar_url: null, nickname: null, added_at: new Date() },
+        ]),
+      },
+    });
+    await handleHvictims(ctx, deps);
+    const [text, opts] = ctx.reply.mock.calls[0]!;
+    expect(text).toContain('<a href="tg://user?id=100">@alice</a>');
+    expect(text).toContain('1 total');
+    expect(text).toContain('<a href="https://www.erepublik.com/en/citizen/profile/500">Bob</a>');
+    expect((opts as { link_preview_options?: unknown }).link_preview_options).toEqual({ is_disabled: true });
+  });
+
+  it('handles a hunter with no victims gracefully', async () => {
+    const ctx = buildCtx({ fromId: Number(OWNER_ID) });
+    ctx.match = '100';
+    const deps = makeDeps({
+      hunters: {
+        findByTelegramId: vi.fn().mockResolvedValue({
+          telegram_id: '100', username: 'alice', status: 'active', registered_at: new Date(), decided_at: null, decided_by: null,
+        }),
+      },
+      victims: { list: vi.fn().mockResolvedValue([]) },
+    });
+    await handleHvictims(ctx, deps);
+    const [text] = ctx.reply.mock.calls[0]!;
+    expect(text).toContain('@alice');
+    expect(text).toContain('has no victims');
   });
 });

@@ -125,6 +125,97 @@ export async function handleUnrevoke(ctx: OwnerCtx, deps: OwnerDeps): Promise<vo
   await ctx.reply(row ? `Unrevoked ${targetId}.` : 'No such hunter.');
 }
 
+// Renders a hunter's Telegram identity as a clickable link to their profile.
+// `tg://user?id=…` opens the user card in Telegram clients (works because the
+// bot has interacted with them — they registered).
+function hunterLink(telegramId: bigint | string, username: string | null): string {
+  const display = username ? `@${escapeHtml(username)}` : String(telegramId);
+  return `<a href="tg://user?id=${telegramId}">${display}</a>`;
+}
+
+function profileLink(citizenId: bigint | string, name: string): string {
+  return `<a href="https://www.erepublik.com/en/citizen/profile/${citizenId}">${escapeHtml(name)}</a>`;
+}
+
+export async function handleAllVictims(ctx: OwnerCtx, deps: OwnerDeps): Promise<void> {
+  const [hunters, victims] = await Promise.all([
+    deps.hunters.listAll(),
+    deps.victims.listAll(),
+  ]);
+  if (victims.length === 0) {
+    await ctx.reply('No victims across any hunter.');
+    return;
+  }
+
+  // Group victims by hunter_telegram_id (string keys, since pg returns bigints as strings).
+  const byHunter = new Map<string, typeof victims>();
+  for (const v of victims) {
+    const list = byHunter.get(v.hunter_telegram_id) ?? [];
+    list.push(v);
+    byHunter.set(v.hunter_telegram_id, list);
+  }
+
+  // One message per hunter — mirrors handleUsers' chunking strategy and keeps
+  // each group under Telegram's 4 KB message limit even for prolific hunters.
+  let sent = 0;
+  for (const h of hunters) {
+    const list = byHunter.get(h.telegram_id);
+    if (!list || list.length === 0) continue;
+    const lines = [
+      `👤 ${hunterLink(h.telegram_id, h.username)} (<code>${h.telegram_id}</code>) — ${list.length} victim(s)`,
+      ...list.map((v) => {
+        const tag = v.nickname ? ` "${escapeHtml(v.nickname)}"` : '';
+        return `  • ${profileLink(v.citizen_id, v.citizen_name)} (${v.citizen_id})${tag}`;
+      }),
+    ];
+    await ctx.reply(lines.join('\n'), {
+      parse_mode: 'HTML',
+      link_preview_options: { is_disabled: true },
+    });
+    sent++;
+  }
+
+  if (sent === 0) {
+    // All victims belong to hunters that no longer exist (FK CASCADE should
+    // have removed them, but defensive in case of orphan rows).
+    await ctx.reply('No victims linked to existing hunters.');
+  }
+}
+
+export async function handleHvictims(ctx: OwnerCtx, deps: OwnerDeps): Promise<void> {
+  const m = /^([0-9]+)$/.exec((ctx.match ? String(ctx.match) : '').trim());
+  if (!m) {
+    await ctx.reply('Usage: /hvictims <telegram_id>');
+    return;
+  }
+  const targetId = BigInt(m[1]!);
+  const hunter = await deps.hunters.findByTelegramId(targetId);
+  if (!hunter) {
+    await ctx.reply('No such hunter.');
+    return;
+  }
+  const list = await deps.victims.list(targetId);
+  const link = hunterLink(hunter.telegram_id, hunter.username);
+  if (list.length === 0) {
+    await ctx.reply(
+      `${link} (<code>${hunter.telegram_id}</code>) has no victims.`,
+      { parse_mode: 'HTML', link_preview_options: { is_disabled: true } },
+    );
+    return;
+  }
+  const lines = [
+    `Victims of ${link} (<code>${hunter.telegram_id}</code>) — ${list.length} total:`,
+    ...list.map((v) => {
+      const tag = v.nickname ? ` "${escapeHtml(v.nickname)}"` : '';
+      return `• ${profileLink(v.citizen_id, v.citizen_name)} (${v.citizen_id})${tag}`;
+    }),
+  ];
+  await ctx.reply(lines.join('\n'), {
+    parse_mode: 'HTML',
+    link_preview_options: { is_disabled: true },
+  });
+}
+
 export async function handleSetcookie(ctx: OwnerCtx, deps: OwnerDeps): Promise<void> {
   const arg = (ctx.match ? String(ctx.match) : '').trim();
   if (!arg) {
@@ -185,6 +276,14 @@ export function ownerHandlers(deps: OwnerDeps): Composer<never> {
 
   c.command('setcookie', gate, async (ctx) => {
     await handleSetcookie(ctx, deps);
+  });
+
+  c.command('allvictims', gate, async (ctx) => {
+    await handleAllVictims(ctx, deps);
+  });
+
+  c.command('hvictims', gate, async (ctx) => {
+    await handleHvictims(ctx, deps);
   });
 
   return c;
