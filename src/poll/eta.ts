@@ -27,9 +27,10 @@ export function computeRefinedEta(input: {
   serverNowUnix: number;
 }): EtaResult | null {
   const zoneKey = String(input.zoneId);
-  // `bar` can be omitted altogether on early-round responses where neither
-  // side has yet dominated. The type is optimistic; defend against the wire.
-  const leaderCountryId = input.stats.division.bar?.[zoneKey];
+  // `division` itself, and `bar` within it, can be missing on early-round
+  // responses where neither side has yet dominated. The type is optimistic;
+  // defend at every level — production crash-looped because only `bar` was guarded.
+  const leaderCountryId = input.stats.division?.bar?.[zoneKey];
   if (leaderCountryId === undefined) return null;
 
   const leaderPoints = pointsFor(input.stats, leaderCountryId, zoneKey);

@@ -35,6 +35,10 @@ const client = new ErepClient({ auth });
 
 const res = await client.getBattleStats(battleId, zoneId, 11);
 const zoneKey = String(zoneId);
+if (!res.division) {
+  console.log('division: <missing in response>');
+  process.exit(0);
+}
 console.log('division.bar:', res.division.bar);
 console.log('division.domination:', res.division.domination);
 console.log('zone_finished:', res.zone_finished);

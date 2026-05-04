@@ -19,7 +19,8 @@ export interface BattleStatsResponse {
     overall: unknown[];
   };
   zone_finished: boolean;
-  division: DivisionStats;
+  /** Absent on some early-round responses; callers must guard before access. */
+  division?: DivisionStats;
   /** Citizen-id → minimal citizen card. Used to resolve names/avatars in alerts. */
   fightersData: Record<string, FighterRow>;
   opponentsInQueue: number;

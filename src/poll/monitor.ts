@@ -78,8 +78,8 @@ export async function runMonitor(state: BattleState, deps: MonitorDeps): Promise
       defCountryId: countries.def,
       victims: deps.victims(),
     });
-    const wallDom = stats.division.domination[String(state.zoneId)] ?? 0;
-    const wallHolderId = stats.division.bar[String(state.zoneId)] ?? countries.inv;
+    const wallDom = stats.division?.domination[String(state.zoneId)] ?? 0;
+    const wallHolderId = stats.division?.bar[String(state.zoneId)] ?? countries.inv;
     const wallHolderName =
       wallHolderId === countries.inv ? state.invName : wallHolderId === countries.def ? state.defName : String(wallHolderId);
     for (const hunterMatch of perHunter) {

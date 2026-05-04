@@ -34,7 +34,7 @@ describe('runProbe', () => {
 
   it('returns remove when computeRefinedEta cannot resolve a leader (bar lacks zone)', async () => {
     const stats = mockStats({});
-    delete (stats.division.bar as Record<string, number>)['38158390'];
+    delete (stats.division!.bar as Record<string, number>)['38158390'];
     const { deps } = buildDeps({ stats });
     const result = await runProbe(buildBattleState({ start: ROUND_START }), deps);
     expect(result).toEqual({ kind: 'remove' });

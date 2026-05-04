@@ -102,9 +102,22 @@ describe('computeRefinedEta', () => {
     ).toBeNull();
   });
 
+  it('returns null when division is missing entirely (regression: prod crash-loop)', () => {
+    const stats = mockStats({});
+    delete (stats as { division?: unknown }).division;
+    expect(
+      computeRefinedEta({
+        stats,
+        zoneId: 38158390,
+        roundStartUnix: 1000,
+        serverNowUnix: 1000 + 85 * 60,
+      }),
+    ).toBeNull();
+  });
+
   it('returns null when bar lacks the zone (e.g. round just ended)', () => {
     const stats = mockStats({});
-    delete (stats.division.bar as Record<string, number>)['38158390'];
+    delete (stats.division!.bar as Record<string, number>)['38158390'];
     expect(
       computeRefinedEta({
         stats,
@@ -117,7 +130,7 @@ describe('computeRefinedEta', () => {
 
   it('returns null when leader country has no per-zone domination entry', () => {
     const stats = mockStats({ leader: 72, leaderPoints: 1000 });
-    delete ((stats.division as Record<string, unknown>)['72'] as Record<string, unknown>)['38158390'];
+    delete ((stats.division! as Record<string, unknown>)['72'] as Record<string, unknown>)['38158390'];
     expect(
       computeRefinedEta({
         stats,

@@ -85,7 +85,7 @@ describe('ErepClient.getBattleStats', () => {
     });
     const res = await client.getBattleStats(869119, 38158390);
     expect(res.zone_finished).toBe(false);
-    expect(res.division.bar['38158390']).toBe(72);
+    expect(res.division!.bar['38158390']).toBe(72);
     expect(res.fightersData['9637574']?.name).toBe('K0rsakoff');
   });
 
