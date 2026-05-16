@@ -29,6 +29,14 @@ const Schema = z.object({
   CANDIDATE_MIN_ELAPSED_SEC: numericString('CANDIDATE_MIN_ELAPSED_SEC', '5100'),
   KEEP_ALIVE_INTERVAL_MS: numericString('KEEP_ALIVE_INTERVAL_MS', '600000'),
   KEEP_ALIVE_ENABLED: z.enum(['true', 'false']).default('true'),
+  // Liveness watchdog — see src/runtime/liveness.ts. Engine records a success
+  // after every public-API hit (one per POLL_CAMPAIGNS_SEC). Defaults assume
+  // a 60s scan cadence: /healthz flips to 503 after ~3 consecutive failures,
+  // and the watchdog crashes the process after ~10.
+  LIVENESS_UNHEALTHY_MS: numericString('LIVENESS_UNHEALTHY_MS', '180000'),
+  LIVENESS_RESTART_MS: numericString('LIVENESS_RESTART_MS', '600000'),
+  LIVENESS_CHECK_INTERVAL_MS: numericString('LIVENESS_CHECK_INTERVAL_MS', '15000'),
+  LIVENESS_ENABLED: z.enum(['true', 'false']).default('true'),
   HTTP_PORT: numericString('HTTP_PORT', '3000'),
   MINIAPP_INITDATA_TTL_SEC: numericString('MINIAPP_INITDATA_TTL_SEC', '86400'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info'),
@@ -49,6 +57,10 @@ export interface Config {
   candidateMinElapsedSec: number;
   keepAliveIntervalMs: number;
   keepAliveEnabled: boolean;
+  livenessUnhealthyMs: number;
+  livenessRestartMs: number;
+  livenessCheckIntervalMs: number;
+  livenessEnabled: boolean;
   httpPort: number;
   miniappInitDataTtlSec: number;
   logLevel: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'silent';
@@ -71,6 +83,10 @@ export function loadConfig(source: Record<string, string | undefined> = process.
     candidateMinElapsedSec: Number(parsed.CANDIDATE_MIN_ELAPSED_SEC),
     keepAliveIntervalMs: Number(parsed.KEEP_ALIVE_INTERVAL_MS),
     keepAliveEnabled: parsed.KEEP_ALIVE_ENABLED === 'true',
+    livenessUnhealthyMs: Number(parsed.LIVENESS_UNHEALTHY_MS),
+    livenessRestartMs: Number(parsed.LIVENESS_RESTART_MS),
+    livenessCheckIntervalMs: Number(parsed.LIVENESS_CHECK_INTERVAL_MS),
+    livenessEnabled: parsed.LIVENESS_ENABLED === 'true',
     httpPort: Number(parsed.HTTP_PORT),
     miniappInitDataTtlSec: Number(parsed.MINIAPP_INITDATA_TTL_SEC),
     logLevel: parsed.LOG_LEVEL,

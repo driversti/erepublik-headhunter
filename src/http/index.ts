@@ -4,6 +4,7 @@ import type { Logger } from '../erep/logger.js';
 import { SilentLogger } from '../erep/logger.js';
 import type { HunterService } from '../services/hunters.js';
 import type { VictimService } from '../services/victims.js';
+import type { LivenessSignal } from '../runtime/liveness.js';
 import { createInitDataAuth } from './auth.js';
 import { createApiRouter } from './routes.js';
 import { createMiniappRouter, miniappStaticFile } from './miniapp.js';
@@ -17,6 +18,12 @@ export interface HttpServerDeps {
   ownerTelegramId: bigint;
   /** Telegram initData replay window in seconds. Default 86400 (24h). */
   initDataTtlSec?: number;
+  /** Optional liveness signal — when present, `/healthz` returns 503 if
+   *  no successful poll has happened in `livenessUnhealthyMs`. Without it
+   *  `/healthz` is a flat 200, like before. */
+  liveness?: Pick<LivenessSignal, 'staleMs'>;
+  /** Staleness threshold (ms) above which `/healthz` flips to 503. */
+  livenessUnhealthyMs?: number;
   logger?: Logger;
 }
 
@@ -40,7 +47,22 @@ export function createHttpServer(deps: HttpServerDeps): HttpServer {
   app.disable('x-powered-by');
   app.use(express.json({ limit: '16kb' }));
 
+  // /healthz is reached by the Dockerfile HEALTHCHECK over loopback. When the
+  // poll engine is feeding us a liveness signal, flip to 503 once outbound
+  // calls have been failing past the threshold — that lets external monitors
+  // see the breakage and pairs with LivenessWatchdog (which crashes the
+  // process so `restart: unless-stopped` can recover the netns).
+  const livenessThresholdMs = deps.livenessUnhealthyMs ?? 180_000;
   app.get('/healthz', (_req, res) => {
+    if (deps.liveness) {
+      const staleMs = deps.liveness.staleMs();
+      if (staleMs >= livenessThresholdMs) {
+        res.status(503).json({ ok: false, reason: 'poll_stale', staleMs });
+        return;
+      }
+      res.status(200).json({ ok: true, staleMs });
+      return;
+    }
     res.status(200).json({ ok: true });
   });
 

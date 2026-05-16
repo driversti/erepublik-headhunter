@@ -18,6 +18,7 @@ import { OwnerPager } from './runtime/owner-pager.js';
 import { wrapClientForPager } from './runtime/wrap-client.js';
 import { gracefulShutdown } from './runtime/shutdown.js';
 import { KeepAlive } from './runtime/keep-alive.js';
+import { LivenessSignal, LivenessWatchdog } from './runtime/liveness.js';
 
 async function main(): Promise<void> {
   const cfg = loadConfig();
@@ -78,6 +79,11 @@ async function main(): Promise<void> {
   });
   const engineClient = wrapClientForPager(client, pager);
 
+  // Liveness signal — the polling engine ticks it on every successful
+  // campaigns scan; HTTP /healthz + LivenessWatchdog read from it. See
+  // src/runtime/liveness.ts for the rationale (gluetun netns recovery).
+  const liveness = cfg.livenessEnabled ? new LivenessSignal() : null;
+
   // polling engine — accepts a Pick<ErepClient, 'listCampaigns' | 'getBattleStats'>
   const engine = createPollingEngine({
     client: engineClient as unknown as ErepClient,
@@ -90,6 +96,7 @@ async function main(): Promise<void> {
     windowSeconds: cfg.windowSeconds,
     probeLeadSec: cfg.probeLeadSec,
     candidateMinElapsedSec: cfg.candidateMinElapsedSec,
+    ...(liveness && { liveness }),
   });
 
   // http
@@ -100,6 +107,10 @@ async function main(): Promise<void> {
     ownerTelegramId: cfg.ownerTelegramId,
     initDataTtlSec: cfg.miniappInitDataTtlSec,
     logger,
+    ...(liveness && {
+      liveness,
+      livenessUnhealthyMs: cfg.livenessUnhealthyMs,
+    }),
   });
 
   // start everything
@@ -116,6 +127,28 @@ async function main(): Promise<void> {
     logger.info('auth.keep_alive.started', { intervalMs: cfg.keepAliveIntervalMs });
   } else {
     logger.info('auth.keep_alive.disabled');
+  }
+
+  // Liveness watchdog — crashes the process when the polling engine has been
+  // failing for too long, so docker-compose `restart: unless-stopped` can
+  // bring up a fresh netns (e.g. after gluetun's tun0 was reset). Plain
+  // "unhealthy" status is not enough — Docker does not auto-restart on it.
+  const watchdog = liveness
+    ? new LivenessWatchdog({
+        signal: liveness,
+        restartMs: cfg.livenessRestartMs,
+        checkIntervalMs: cfg.livenessCheckIntervalMs,
+        logger,
+      })
+    : null;
+  if (watchdog) {
+    watchdog.start();
+    logger.info('liveness.watchdog.started', {
+      unhealthyMs: cfg.livenessUnhealthyMs,
+      restartMs: cfg.livenessRestartMs,
+    });
+  } else {
+    logger.info('liveness.watchdog.disabled');
   }
 
   // Persistent chat menu button (bottom-left of the Telegram input field) opens
@@ -148,6 +181,7 @@ async function main(): Promise<void> {
       http,
       pool: { end: () => pool.end() },
       ...(keepAlive && { keepAlive }),
+      ...(watchdog && { livenessWatchdog: watchdog }),
       logger,
     });
     process.exit(0);

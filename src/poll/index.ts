@@ -4,6 +4,7 @@ import type { ErepClient } from '../erep/client.js';
 import type { VictimRepo } from '../db/repos/victims.js';
 import type { AlertedRoundsRepo } from '../db/repos/alerted-rounds.js';
 import type { MatchesService } from '../services/matches.js';
+import type { LivenessSignal } from '../runtime/liveness.js';
 import type { CampaignsResponse } from '../erep/types/campaigns.js';
 import { Scheduler } from './scheduler.js';
 import { scanCampaigns, seedToInitialState } from './campaigns-scan.js';
@@ -25,6 +26,10 @@ export interface PollingEngineDeps {
   windowSeconds?: number;
   probeLeadSec?: number;
   candidateMinElapsedSec?: number;
+  /** Optional liveness signal — `recordSuccess()` is called after every
+   *  successful `listCampaigns` so external readers (HTTP /healthz,
+   *  LivenessWatchdog) can detect outbound-network breakage. */
+  liveness?: Pick<LivenessSignal, 'recordSuccess'>;
   /** Time sources, overridable for tests. */
   localNow?: () => number;
 }
@@ -132,6 +137,7 @@ export class PollingEngine {
       });
       return;
     }
+    this.deps.liveness?.recordSuccess();
     this.latestCampaigns = campaigns;
 
     try {
