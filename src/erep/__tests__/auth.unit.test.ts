@@ -259,7 +259,9 @@ describe('AuthManager — backoff', () => {
     });
 
     expect(await auth.getErpk()).toBe('X');
-    // Force a refresh (simulating ErepClient on 401).
+    // Force a refresh (simulating ErepClient on 401) — past the post-success
+    // login cooldown so the attempt actually reaches the network.
+    clock.advance(60_001);
     await expect(auth.refresh()).rejects.toBeInstanceOf(BadCredentialsError);
     expect(auth.isLockedOut()).toBe(true);
   });
@@ -364,5 +366,61 @@ describe('AuthManager — cache mismatch', () => {
     });
     expect(await auth.getErpk()).toBe('NEW');
     expect(calls.find(c => c.init.method === 'POST')).toBeDefined();
+  });
+});
+
+describe('AuthManager — post-success login cooldown', () => {
+  it('blocks a forced refresh within 60s of a successful login, keeps cached session usable', async () => {
+    const { auth, clock } = makeAuth({
+      [`GET ${LOGIN}`]: [
+        { status: 200, body: loginPageHtml('CSRF-1') },
+        { status: 200, body: loginPageHtml('CSRF-2') },
+      ],
+      [`POST ${LOGIN}`]: [
+        { status: 302, location: '/en', setCookie: ['erpk=FIRST'] },
+        { status: 302, location: '/en', setCookie: ['erpk=SECOND'] },
+      ],
+      [`GET ${HOME}`]: [
+        { status: 200, body: loggedInHomeHtml() },
+        { status: 200, body: loggedInHomeHtml() },
+      ],
+    });
+
+    expect(await auth.getErpk()).toBe('FIRST');
+
+    // Immediately demanding a fresh login must hit the cooldown…
+    await expect(auth.refresh()).rejects.toBeInstanceOf(LoginLockedOutError);
+    // …and must NOT have wiped the working cached session.
+    expect(await auth.getErpk()).toBe('FIRST');
+
+    // After the cooldown expires the refresh goes through.
+    clock.advance(60_001);
+    expect(await auth.refresh()).toBe('SECOND');
+  });
+});
+
+describe('AuthManager — refresh preserves persisted session', () => {
+  it('keeps the old store row when the forced re-login fails', async () => {
+    const { auth, clock, store } = makeAuth({
+      [`GET ${LOGIN}`]: [
+        { status: 200, body: loginPageHtml('CSRF-1') },
+        { status: 200, body: loginPageHtml('CSRF-2') },
+      ],
+      [`POST ${LOGIN}`]: [
+        { status: 302, location: '/en', setCookie: ['erpk=OLD'] },
+        // Second login attempt is rejected by the CAPTCHA gate.
+        { status: 200, body: captchaPageHtml() },
+      ],
+      [`GET ${HOME}`]: [{ status: 200, body: loggedInHomeHtml() }],
+    });
+
+    expect(await auth.getErpk()).toBe('OLD');
+    clock.advance(61_000); // past the post-success cooldown
+
+    await expect(auth.refresh()).rejects.toBeInstanceOf(CaptchaGateError);
+
+    // The old (possibly still /en-valid) session must survive in the store.
+    const saved = await store.load();
+    expect(saved?.cookies['erpk']).toBe('OLD');
   });
 });

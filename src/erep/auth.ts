@@ -25,6 +25,11 @@ const DEFAULT_BACKOFF_MS: readonly [number, number, number] = [
   900_000,
 ];
 
+/** Minimum gap between login attempts, even successful ones. A burst of
+ *  probes each reacting to a 403 must never turn into a login storm — the
+ *  2026-07-31 incident hit eRepublik's login CAPTCHA after 6 logins in 2 s. */
+const LOGIN_MIN_INTERVAL_MS = 60_000;
+
 export interface AuthManagerOptions {
   email: string;
   password: string;
@@ -122,10 +127,13 @@ export class AuthManager {
       throw new LoginLockedOutError(wait);
     }
 
-    // Drop the cached session so doLogin() doesn't accidentally short-circuit.
+    // Drop the in-memory session so doLogin() doesn't short-circuit. The
+    // persisted row is deliberately kept: a successful doLogin() overwrites
+    // it, and if the login fails the old row may still be /en-valid (the
+    // verification-gate case) — clearing it here is what left the bot
+    // session-less during the 2026-07-31 incident.
     this.cachedRecord = null;
     this.jar.replaceAll({});
-    await this.store.clear().catch(() => {});
 
     this.loginInFlight = this.doLogin().finally(() => {
       this.loginInFlight = null;
@@ -389,6 +397,10 @@ export class AuthManager {
       this.cachedRecord = record;
       this.loadedFromStore = true;
       this.resetFailureState();
+      // Post-success cooldown: reuses the lockout gate so any caller that
+      // demands another fresh login inside the window gets LoginLockedOutError
+      // (cheap, already handled everywhere) instead of a second login.
+      this.nextAttemptAt = this.now() + LOGIN_MIN_INTERVAL_MS;
       this.log.info('auth.login.ok', {
         email: this.email,
         durationMs: this.now() - start,

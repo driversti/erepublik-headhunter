@@ -72,6 +72,21 @@ export class AuthRequiredError extends ErepError {
   }
 }
 
+/** The account is behind eRepublik's session-verification (captcha) gate:
+ *  a fresh login authenticates against /en but game endpoints still 403.
+ *  Thrown synchronously by the engine guard while auth'd polling is paused;
+ *  no network I/O happens for blocked calls. */
+export class VerificationGateError extends ErepError {
+  override readonly code = 'VERIFICATION_GATE';
+
+  constructor(sinceMs: number, canaryIntervalMs: number) {
+    super(
+      `Verification gate active since ${new Date(sinceMs).toISOString()}; ` +
+        `auth'd polling paused (canary every ${Math.round(canaryIntervalMs / 60_000)} min)`,
+    );
+  }
+}
+
 /** SessionStore I/O failed (read, write, JSON parse). */
 export class SessionStoreError extends ErepError {
   override readonly code = 'SESSION_STORE';
