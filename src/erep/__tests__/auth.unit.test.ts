@@ -259,7 +259,9 @@ describe('AuthManager — backoff', () => {
     });
 
     expect(await auth.getErpk()).toBe('X');
-    // Force a refresh (simulating ErepClient on 401).
+    // Force a refresh (simulating ErepClient on 401) — past the post-success
+    // login cooldown so the attempt actually reaches the network.
+    clock.advance(60_001);
     await expect(auth.refresh()).rejects.toBeInstanceOf(BadCredentialsError);
     expect(auth.isLockedOut()).toBe(true);
   });
@@ -364,5 +366,35 @@ describe('AuthManager — cache mismatch', () => {
     });
     expect(await auth.getErpk()).toBe('NEW');
     expect(calls.find(c => c.init.method === 'POST')).toBeDefined();
+  });
+});
+
+describe('AuthManager — post-success login cooldown', () => {
+  it('blocks a forced refresh within 60s of a successful login, keeps cached session usable', async () => {
+    const { auth, clock } = makeAuth({
+      [`GET ${LOGIN}`]: [
+        { status: 200, body: loginPageHtml('CSRF-1') },
+        { status: 200, body: loginPageHtml('CSRF-2') },
+      ],
+      [`POST ${LOGIN}`]: [
+        { status: 302, location: '/en', setCookie: ['erpk=FIRST'] },
+        { status: 302, location: '/en', setCookie: ['erpk=SECOND'] },
+      ],
+      [`GET ${HOME}`]: [
+        { status: 200, body: loggedInHomeHtml() },
+        { status: 200, body: loggedInHomeHtml() },
+      ],
+    });
+
+    expect(await auth.getErpk()).toBe('FIRST');
+
+    // Immediately demanding a fresh login must hit the cooldown…
+    await expect(auth.refresh()).rejects.toBeInstanceOf(LoginLockedOutError);
+    // …and must NOT have wiped the working cached session.
+    expect(await auth.getErpk()).toBe('FIRST');
+
+    // After the cooldown expires the refresh goes through.
+    clock.advance(60_001);
+    expect(await auth.refresh()).toBe('SECOND');
   });
 });
