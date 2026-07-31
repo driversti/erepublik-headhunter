@@ -107,10 +107,11 @@ export function guardEngineClient(
         }
         // Canary attempt — one real call per interval probes whether the
         // gate has been lifted (the owner solved the captcha in a browser).
-        gate.lastCanaryAtMs = t;
+        const state = gate; // narrowed alias survives the catch block
+        state.lastCanaryAtMs = t;
         try {
           const res = await inner.getBattleStats(battleId, battleZoneId, division);
-          const gatedForMs = t - gate.sinceMs;
+          const gatedForMs = t - state.sinceMs;
           log?.info('guard.gate.cleared', { gatedForMs });
           gate = null;
           pager.recordSuccess('battle-stats');
@@ -118,7 +119,7 @@ export function guardEngineClient(
           return res;
         } catch (err) {
           // Expected while gated — keep the gate, stay out of the pager.
-          await maybeRemind(gate, t);
+          await maybeRemind(state, t);
           throw err;
         }
       }

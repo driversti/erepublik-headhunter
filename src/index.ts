@@ -15,7 +15,7 @@ import { makeResilientSender } from './bot/sender.js';
 import { createPollingEngine } from './poll/index.js';
 import { createHttpServer } from './http/index.js';
 import { OwnerPager } from './runtime/owner-pager.js';
-import { wrapClientForPager } from './runtime/wrap-client.js';
+import { guardEngineClient } from './runtime/engine-guard.js';
 import { gracefulShutdown } from './runtime/shutdown.js';
 import { KeepAlive } from './runtime/keep-alive.js';
 import { LivenessSignal, LivenessWatchdog } from './runtime/liveness.js';
@@ -77,7 +77,10 @@ async function main(): Promise<void> {
     ownerTelegramId: cfg.ownerTelegramId,
     logger,
   });
-  const engineClient = wrapClientForPager(client, pager);
+  const notifyOwner = async (html: string): Promise<void> => {
+    await bot.api.sendMessage(Number(cfg.ownerTelegramId), html, { parse_mode: 'HTML' });
+  };
+  const engineClient = guardEngineClient(client, { pager, notifyOwner, logger });
 
   // Liveness signal — the polling engine ticks it on every successful
   // campaigns scan; HTTP /healthz + LivenessWatchdog read from it. See
