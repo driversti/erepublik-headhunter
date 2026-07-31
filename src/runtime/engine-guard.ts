@@ -24,6 +24,19 @@ interface GateState {
   lastReminderAtMs: number;
 }
 
+const ENTRY_MSG =
+  '🛑 <b>eRepublik verification gate</b> — a fresh login still gets 403 on ' +
+  'battle-stats. Auth’d polling is paused; retrying once every 10 min.\n' +
+  'To fix now: log into the account in a real browser, solve the ' +
+  'captcha/verification, then /setcookie if it doesn’t recover on its own.';
+
+const reminderMsg = (hours: number): string =>
+  `⏳ Verification gate still active for ${hours}h. Auth’d polling remains ` +
+  'paused; canary retries continue every 10 min.';
+
+const recoveryMsg = (minutes: number): string =>
+  `✅ Verification gate cleared after ${minutes} min — polling resumed.`;
+
 /**
  * Wraps the two ErepClient methods used by the polling engine. Owns two
  * concerns that must stay coordinated (see
@@ -43,12 +56,33 @@ export function guardEngineClient(
   const pager = deps.pager;
   const now = deps.now ?? Date.now;
   const canaryIntervalMs = deps.canaryIntervalMs ?? DEFAULT_CANARY_INTERVAL_MS;
+  const reminderIntervalMs = deps.reminderIntervalMs ?? DEFAULT_REMINDER_INTERVAL_MS;
   const log = deps.logger;
 
   let gate: GateState | null = null;
 
   const opensGate = (err: unknown): err is AuthRequiredError =>
     err instanceof AuthRequiredError && err.status === 403;
+
+  const notify = async (html: string): Promise<void> => {
+    try {
+      await deps.notifyOwner(html);
+    } catch (err) {
+      log?.warn('guard.notify_failed', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+
+  /** While gated, piggyback the 6h reminder on call pressure (blocked calls
+   *  and failed canaries) instead of a dedicated timer — the campaigns feed
+   *  keeps probes coming, and a silent feed also means nothing to report. */
+  const maybeRemind = async (state: GateState, at: number): Promise<void> => {
+    if (at - Math.max(state.sinceMs, state.lastReminderAtMs) >= reminderIntervalMs) {
+      state.lastReminderAtMs = at;
+      await notify(reminderMsg(Math.round((at - state.sinceMs) / 3_600_000)));
+    }
+  };
 
   return {
     async listCampaigns() {
@@ -68,18 +102,25 @@ export function guardEngineClient(
       if (gate) {
         if (t - gate.lastCanaryAtMs < canaryIntervalMs) {
           // Blocked: no network, no pager feed.
+          await maybeRemind(gate, t);
           throw new VerificationGateError(gate.sinceMs, canaryIntervalMs);
         }
         // Canary attempt — one real call per interval probes whether the
         // gate has been lifted (the owner solved the captcha in a browser).
         gate.lastCanaryAtMs = t;
-        const res = await inner.getBattleStats(battleId, battleZoneId, division);
-        // Success: the gate is gone. Failures rethrow above us and keep the
-        // gate; they stay out of the pager (expected while gated).
-        log?.info('guard.gate.cleared', { gatedForMs: t - gate.sinceMs });
-        gate = null;
-        pager.recordSuccess('battle-stats');
-        return res;
+        try {
+          const res = await inner.getBattleStats(battleId, battleZoneId, division);
+          const gatedForMs = t - gate.sinceMs;
+          log?.info('guard.gate.cleared', { gatedForMs });
+          gate = null;
+          pager.recordSuccess('battle-stats');
+          await notify(recoveryMsg(Math.round(gatedForMs / 60_000)));
+          return res;
+        } catch (err) {
+          // Expected while gated — keep the gate, stay out of the pager.
+          await maybeRemind(gate, t);
+          throw err;
+        }
       }
 
       try {
@@ -91,6 +132,7 @@ export function guardEngineClient(
         if (opensGate(err)) {
           gate = { sinceMs: t, lastCanaryAtMs: t, lastReminderAtMs: t };
           log?.warn('guard.gate.opened', { status: err.status });
+          await notify(ENTRY_MSG);
         }
         throw err;
       }

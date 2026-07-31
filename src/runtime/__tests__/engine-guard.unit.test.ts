@@ -134,3 +134,57 @@ describe('guardEngineClient — verification gate', () => {
     expect(inner.listCampaigns).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('guardEngineClient — gate notifications', () => {
+  it('sends the entry notification exactly once when the gate opens', async () => {
+    const { guarded, notifyOwner, inner } = build();
+    inner.getBattleStats.mockRejectedValueOnce(gate403());
+    await guarded.getBattleStats(1n, 2n, 11).catch(() => {});
+
+    expect(notifyOwner).toHaveBeenCalledTimes(1);
+    const text = notifyOwner.mock.calls[0]![0] as string;
+    expect(text).toContain('verification gate');
+    expect(text).toContain('/setcookie');
+
+    // Blocked follow-ups don't re-send.
+    await guarded.getBattleStats(1n, 2n, 11).catch(() => {});
+    expect(notifyOwner).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends a reminder once 6h have passed, then re-arms', async () => {
+    const { guarded, notifyOwner, inner, advance } = build();
+    inner.getBattleStats.mockRejectedValueOnce(gate403());
+    await guarded.getBattleStats(1n, 2n, 11).catch(() => {});
+    notifyOwner.mockClear();
+
+    advance(21_600_001); // 6h → reminder due (also a canary slot: make it fail)
+    inner.getBattleStats.mockRejectedValueOnce(gate403());
+    await guarded.getBattleStats(1n, 2n, 11).catch(() => {});
+    expect(notifyOwner).toHaveBeenCalledTimes(1);
+    expect(notifyOwner.mock.calls[0]![0]).toContain('still active');
+
+    // No second reminder until another 6h passes.
+    await guarded.getBattleStats(1n, 2n, 11).catch(() => {});
+    expect(notifyOwner).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends the recovery notification when a canary clears the gate', async () => {
+    const { guarded, notifyOwner, inner, advance } = build();
+    inner.getBattleStats.mockRejectedValueOnce(gate403());
+    await guarded.getBattleStats(1n, 2n, 11).catch(() => {});
+    notifyOwner.mockClear();
+
+    advance(600_001);
+    await guarded.getBattleStats(1n, 2n, 11);
+    expect(notifyOwner).toHaveBeenCalledTimes(1);
+    expect(notifyOwner.mock.calls[0]![0]).toContain('cleared after');
+  });
+
+  it('swallows notifyOwner rejections — the guarded call itself is unaffected', async () => {
+    const { guarded, notifyOwner, inner } = build();
+    notifyOwner.mockRejectedValue(new Error('telegram down'));
+    inner.getBattleStats.mockRejectedValueOnce(gate403());
+    // Still rejects with the ORIGINAL error, not the notification error.
+    await expect(guarded.getBattleStats(1n, 2n, 11)).rejects.toBeInstanceOf(AuthRequiredError);
+  });
+});
