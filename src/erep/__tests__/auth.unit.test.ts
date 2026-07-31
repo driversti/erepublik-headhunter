@@ -398,3 +398,29 @@ describe('AuthManager — post-success login cooldown', () => {
     expect(await auth.refresh()).toBe('SECOND');
   });
 });
+
+describe('AuthManager — refresh preserves persisted session', () => {
+  it('keeps the old store row when the forced re-login fails', async () => {
+    const { auth, clock, store } = makeAuth({
+      [`GET ${LOGIN}`]: [
+        { status: 200, body: loginPageHtml('CSRF-1') },
+        { status: 200, body: loginPageHtml('CSRF-2') },
+      ],
+      [`POST ${LOGIN}`]: [
+        { status: 302, location: '/en', setCookie: ['erpk=OLD'] },
+        // Second login attempt is rejected by the CAPTCHA gate.
+        { status: 200, body: captchaPageHtml() },
+      ],
+      [`GET ${HOME}`]: [{ status: 200, body: loggedInHomeHtml() }],
+    });
+
+    expect(await auth.getErpk()).toBe('OLD');
+    clock.advance(61_000); // past the post-success cooldown
+
+    await expect(auth.refresh()).rejects.toBeInstanceOf(CaptchaGateError);
+
+    // The old (possibly still /en-valid) session must survive in the store.
+    const saved = await store.load();
+    expect(saved?.cookies['erpk']).toBe('OLD');
+  });
+});

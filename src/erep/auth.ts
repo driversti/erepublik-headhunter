@@ -127,10 +127,13 @@ export class AuthManager {
       throw new LoginLockedOutError(wait);
     }
 
-    // Drop the cached session so doLogin() doesn't accidentally short-circuit.
+    // Drop the in-memory session so doLogin() doesn't short-circuit. The
+    // persisted row is deliberately kept: a successful doLogin() overwrites
+    // it, and if the login fails the old row may still be /en-valid (the
+    // verification-gate case) — clearing it here is what left the bot
+    // session-less during the 2026-07-31 incident.
     this.cachedRecord = null;
     this.jar.replaceAll({});
-    await this.store.clear().catch(() => {});
 
     this.loginInFlight = this.doLogin().finally(() => {
       this.loginInFlight = null;
