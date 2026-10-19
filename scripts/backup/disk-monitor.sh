@@ -8,6 +8,10 @@
 #   0 * * * * /home/yurii/docker/headhunter/scripts/disk-monitor.sh >> /home/yurii/backups/headhunter/logs/cron.log 2>&1
 
 set -euo pipefail
+# Dumps contain the live eRepublik session cookie (bot_session); keep every
+# file and directory these scripts create private to the owner. rsync -a
+# carries the 600 mode over to the NAS copy too.
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
