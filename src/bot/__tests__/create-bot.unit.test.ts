@@ -86,6 +86,7 @@ describe('createBot integration', () => {
       can_manage_bots: false,
       has_topics_enabled: false,
       allows_users_to_create_topics: false,
+      supports_join_request_queries: false,
     };
 
     // Install a transformer that intercepts all API calls before they hit the network.
