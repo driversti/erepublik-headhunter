@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, type Mock } from 'vitest';
 import { ownerOnly } from '../middleware/owner.js';
 import { activeHunterOnly } from '../middleware/active-hunter.js';
 
@@ -13,16 +13,16 @@ const buildCtx = (
     from?: { id: number };
     message?: object;
     callbackQuery?: object;
-    reply: ReturnType<typeof vi.fn>;
-    answerCallbackQuery: ReturnType<typeof vi.fn>;
+    reply: Mock;
+    answerCallbackQuery: Mock;
   };
 } => {
   const ctx: {
     from?: { id: number };
     message?: object;
     callbackQuery?: object;
-    reply: ReturnType<typeof vi.fn>;
-    answerCallbackQuery: ReturnType<typeof vi.fn>;
+    reply: Mock;
+    answerCallbackQuery: Mock;
   } = {
     reply: vi.fn().mockResolvedValue(undefined),
     answerCallbackQuery: vi.fn().mockResolvedValue(undefined),

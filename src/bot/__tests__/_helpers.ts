@@ -1,13 +1,13 @@
-import { vi } from 'vitest';
+import { vi, type Mock } from 'vitest';
 
 export interface FakeContext {
   from?: { id: number; username?: string };
   chat?: { id: number };
   message?: { text: string };
   match?: string;
-  reply: ReturnType<typeof vi.fn>;
-  answerCallbackQuery: ReturnType<typeof vi.fn>;
-  api: { sendMessage: ReturnType<typeof vi.fn> };
+  reply: Mock;
+  answerCallbackQuery: Mock;
+  api: { sendMessage: Mock };
 }
 
 export function buildCtx(overrides: {

@@ -22,7 +22,7 @@
     "test": "vitest run --exclude '**/*.integration.test.ts'",
     "test:watch": "vitest --exclude '**/*.integration.test.ts'",
     "test:integration": "node --env-file=.env ./node_modules/vitest/dist/cli.js run src/erep/__tests__/auth.integration.test.ts",
-    "test:db": "vitest run 'src/db/**/*.integration.test.ts' src/erep/__tests__/postgres-session-store.integration.test.ts",
+    "test:db": "vitest run src/db/__tests__/ src/erep/__tests__/postgres-session-store.integration.test.ts --exclude '**/*.unit.test.ts'",
     "db:migrate": "node-pg-migrate up",
     "db:migrate:down": "node-pg-migrate down",
     "db:migrate:create": "node-pg-migrate create -j sql",
@@ -42,7 +42,7 @@
     "testcontainers": "^11.14.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.12"
   },
   "dependencies": {
     "express": "^5.2.1",
@@ -51,5 +51,8 @@
     "pg": "^8.20.0",
     "pino": "^9.14.0",
     "zod": "^4.4.2"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }

@@ -1,10 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, type Mock } from 'vitest';
 import { MemoryLogger } from '../../erep/logger.js';
 import { MatchesService, type MatchAlertInput } from '../matches.js';
 
 interface FakeAlertedRounds {
   records: Set<string>;
-  record: ReturnType<typeof vi.fn>;
+  record: Mock;
 }
 
 function makeRepo(): FakeAlertedRounds {
