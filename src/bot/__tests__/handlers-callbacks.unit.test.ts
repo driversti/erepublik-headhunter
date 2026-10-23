@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, type Mock } from 'vitest';
 import {
   handleApprove,
   handleDeny,
@@ -172,7 +172,7 @@ describe('handleHvictimsPick', () => {
     expect(deps.hunters.findByTelegramId).toHaveBeenCalledWith(TARGET_ID);
     expect(deps.victims!.list).toHaveBeenCalledWith(TARGET_ID);
     expect(ctx.answerCallbackQuery).toHaveBeenCalledWith({ text: '' });
-    const [text, opts] = (ctx.editMessageText as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    const [text, opts] = (ctx.editMessageText as Mock).mock.calls[0]!;
     expect(text).toContain('@alice');
     expect(text).toContain('<a href="https://www.erepublik.com/en/citizen/profile/500">Bob</a>');
     expect((opts as { link_preview_options?: unknown }).link_preview_options).toEqual({ is_disabled: true });

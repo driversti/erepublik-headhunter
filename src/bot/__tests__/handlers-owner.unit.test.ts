@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, type Mock } from 'vitest';
 import {
   handlePending,
   handleUsers,
@@ -322,7 +322,7 @@ describe('handleSetcookie', () => {
     const ctx = buildCtx({ fromId: Number(OWNER_ID) });
     ctx.match = 'bad-cookie';
     const auth = makeAuth();
-    (auth.setCookiesManually as ReturnType<typeof vi.fn>).mockRejectedValue(
+    (auth.setCookiesManually as Mock).mockRejectedValue(
       new Error('Manually injected cookies failed to authenticate against /en.'),
     );
     const deps = makeDeps({ auth });

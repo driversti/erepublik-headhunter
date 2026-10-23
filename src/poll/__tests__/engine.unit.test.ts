@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, type Mock } from 'vitest';
 import { PollingEngine, createPollingEngine } from '../index.js';
 import type { CampaignsResponse } from '../../erep/types/campaigns.js';
 import { mockStats } from './_helpers.js';
@@ -59,7 +59,7 @@ const buildCampaigns = (battleIds: number[], opts: { time?: number; serverElapse
   };
 };
 
-const buildEngine = (overrides: { listCampaigns?: ReturnType<typeof vi.fn>; getBattleStats?: ReturnType<typeof vi.fn>; localNow?: number } = {}) => {
+const buildEngine = (overrides: { listCampaigns?: Mock; getBattleStats?: Mock; localNow?: number } = {}) => {
   const listCampaigns = overrides.listCampaigns ?? vi.fn().mockResolvedValue(buildCampaigns([1]));
   const getBattleStats = overrides.getBattleStats ?? vi.fn().mockResolvedValue(mockStats({ zoneId: 38158391, leaderPoints: 0 }));
   const listAllForMatching = vi.fn().mockResolvedValue([]);

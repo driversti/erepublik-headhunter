@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, type Mock } from 'vitest';
 import { GrammyError } from 'grammy';
 import { MemoryLogger } from '../../erep/logger.js';
 import { makeResilientSender } from '../sender.js';
@@ -7,13 +7,13 @@ const HUNTER = 100n;
 
 function makeApi(impl: (chatId: number, text: string) => Promise<unknown>) {
   return { sendMessage: vi.fn(impl) } as unknown as {
-    sendMessage: ReturnType<typeof vi.fn>;
+    sendMessage: Mock;
   };
 }
 
 function makeHunters() {
   return { revoke: vi.fn().mockResolvedValue({ telegram_id: '100', status: 'revoked' }) } as unknown as {
-    revoke: ReturnType<typeof vi.fn>;
+    revoke: Mock;
   };
 }
 

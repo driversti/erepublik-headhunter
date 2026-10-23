@@ -1,5 +1,5 @@
 import express from 'express';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, type Mock } from 'vitest';
 import request from 'supertest';
 import { createApiRouter } from '../routes.js';
 import type { HunterRow, VictimRow } from '../../db/types.js';
@@ -26,12 +26,12 @@ const VICTIM_ROW: VictimRow = {
 
 const buildApp = (
   overrides: {
-    list?: ReturnType<typeof vi.fn>;
-    add?: ReturnType<typeof vi.fn>;
-    remove?: ReturnType<typeof vi.fn>;
-    listAll?: ReturnType<typeof vi.fn>;
-    huntersListAll?: ReturnType<typeof vi.fn>;
-    findByTelegramId?: ReturnType<typeof vi.fn>;
+    list?: Mock;
+    add?: Mock;
+    remove?: Mock;
+    listAll?: Mock;
+    huntersListAll?: Mock;
+    findByTelegramId?: Mock;
     ownerTelegramId?: bigint;
     hunter?: HunterRow;
   } = {},
